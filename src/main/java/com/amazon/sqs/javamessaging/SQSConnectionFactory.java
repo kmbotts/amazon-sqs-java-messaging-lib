@@ -14,11 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.QueueConnection;
-import javax.jms.QueueConnectionFactory;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -31,20 +26,25 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 
+import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
+import javax.jms.QueueConnection;
+import javax.jms.QueueConnectionFactory;
+
 /**
  * A ConnectionFactory object encapsulates a set of connection configuration
  * parameters for <code>AmazonSQSClient</code> as well as setting
  * <code>numberOfMessagesToPrefetch</code>.
- * <P>
+ * <p>
  * The <code>numberOfMessagesToPrefetch</code> parameter is used to size of the
  * prefetched messages, which can be tuned based on the application workload. It
  * helps in returning messages from internal buffers(if there is any) instead of
  * waiting for the SQS <code>receiveMessage</code> call to return.
- * <P>
+ * <p>
  * If more physical connections than the default maximum value (that is 50 as of
  * today) are needed on the connection pool,
  * {@link com.amazonaws.ClientConfiguration} needs to be configured.
- * <P>
+ * <p>
  * None of the <code>createConnection</code> methods set-up the physical
  * connection to SQS, so validity of credentials are not checked with those
  * methods.
@@ -53,7 +53,7 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionFactory {
     private final ProviderConfiguration providerConfiguration;
     private final AmazonSQSClientSupplier amazonSQSClientSupplier;
-    
+
     /*
      * At the time when the library will stop supporting Java 7, this can be removed and Supplier<T> from Java 8 can be used directly.
      */
@@ -68,7 +68,7 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
     public SQSConnectionFactory(ProviderConfiguration providerConfiguration) {
         this(providerConfiguration, AmazonSQSClientBuilder.standard());
     }
-    
+
     /*
      * Creates a SQSConnectionFactory that uses the provided AmazonSQS client connection.
      * Every SQSConnection will use the same provided AmazonSQS client.
@@ -88,7 +88,7 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
             }
         };
     }
-    
+
     /*
      * Creates a SQSConnectionFactory that uses the provided AmazonSQSClientBuilder for creating AmazonSQS client connections.
      * Every SQSConnection will have its own copy of AmazonSQS client created through the provided builder.
@@ -108,7 +108,7 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
             }
         };
     }
-    
+
     private SQSConnectionFactory(final Builder builder) {
         this.providerConfiguration = builder.providerConfiguration;
         this.amazonSQSClientSupplier = new AmazonSQSClientSupplier() {
@@ -149,21 +149,21 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
         AWSCredentialsProvider awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
         return createConnection(awsCredentialsProvider);
     }
-    
+
     public SQSConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
         try {
             AmazonSQS amazonSQS = amazonSQSClientSupplier.get();
             return createConnection(amazonSQS, awsCredentialsProvider);
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw (JMSException) new JMSException("Error creating SQS client: " + e.getMessage()).initCause(e);
         }
     }
-    
+
     private SQSConnection createConnection(AmazonSQS amazonSQS, AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
         AmazonSQSMessagingClientWrapper amazonSQSClientJMSWrapper = new AmazonSQSMessagingClientWrapper(amazonSQS, awsCredentialsProvider);
-        return new SQSConnection(amazonSQSClientJMSWrapper, providerConfiguration.getNumberOfMessagesToPrefetch());
+        return new SQSConnection(amazonSQSClientJMSWrapper, providerConfiguration);
     }
-    
+
     @Override
     public QueueConnection createQueueConnection() throws JMSException {
         return (QueueConnection) createConnection();
@@ -173,9 +173,10 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
     public QueueConnection createQueueConnection(String userName, String password) throws JMSException {
         return (QueueConnection) createConnection(userName, password);
     }
-    
+
     /**
      * Deprecated. Use one of the constructors of this class instead and provide either AmazonSQS client or AmazonSQSClientBuilder.
+     *
      * @return
      */
     @Deprecated
@@ -185,6 +186,7 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
 
     /**
      * Deprecated. Use one of the constructors of SQSConnectionFactory instead.
+     *
      * @return
      */
     @Deprecated
@@ -195,13 +197,15 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
         private ClientConfiguration clientConfiguration;
         private AWSCredentialsProvider awsCredentialsProvider = new DefaultAWSCredentialsProviderChain();
         private ProviderConfiguration providerConfiguration;
-        
+
         public Builder(Region region) {
             this();
             this.region = region;
         }
 
-        /** Recommended way to set the AmazonSQSClient is to use region */
+        /**
+         * Recommended way to set the AmazonSQSClient is to use region
+         */
         public Builder(String region) {
             this(Region.getRegion(Regions.fromName(region)));
         }
@@ -210,24 +214,23 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
             providerConfiguration = new ProviderConfiguration();
             clientConfiguration = new ClientConfiguration();
         }
-        
+
         public Builder withRegion(Region region) {
             setRegion(region);
             return this;
         }
-        
-        public Builder withRegionName(String regionName) 
-            throws IllegalArgumentException
-        {
-            setRegion(Region.getRegion( Regions.fromName(regionName) ) );
+
+        public Builder withRegionName(String regionName)
+                throws IllegalArgumentException {
+            setRegion(Region.getRegion(Regions.fromName(regionName)));
             return this;
         }
-        
+
         public Builder withEndpoint(String endpoint) {
             setEndpoint(endpoint);
             return this;
         }
-        
+
         /**
          * An internal method used to explicitly override the internal signer region
          * computed by the default implementation. This method is not expected to be
@@ -237,7 +240,7 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
             setSignerRegionOverride(signerRegionOverride);
             return this;
         }
-        
+
         public Builder withAWSCredentialsProvider(AWSCredentialsProvider awsCredentialsProvider) {
             setAwsCredentialsProvider(awsCredentialsProvider);
             return this;
@@ -265,9 +268,9 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
             this.region = region;
             this.endpoint = null;
         }
-        
+
         public void setRegionName(String regionName) {
-            setRegion( Region.getRegion( Regions.fromName( regionName ) ) );
+            setRegion(Region.getRegion(Regions.fromName(regionName)));
         }
 
         public String getEndpoint() {
@@ -312,5 +315,5 @@ public class SQSConnectionFactory implements ConnectionFactory, QueueConnectionF
             this.awsCredentialsProvider = awsCredentialsProvider;
         }
     }
-    
+
 }

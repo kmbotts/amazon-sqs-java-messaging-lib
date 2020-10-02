@@ -14,12 +14,13 @@
  */
 package com.amazon.sqs.javamessaging.util;
 
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Simple thread factory that supports ThreadGroups */
+/**
+ * Simple thread factory that supports ThreadGroups
+ */
 
-public class SQSMessagingClientThreadFactory implements ThreadFactory {
+public class SQSMessagingClientThreadFactory implements MessagingClientThreadFactory {
 
     private final String threadBaseName;
 
@@ -49,13 +50,12 @@ public class SQSMessagingClientThreadFactory implements ThreadFactory {
         this.isDaemon = threadGroup.isDaemon();
         this.threadGroup = threadGroup;
     }
-    
+
     /**
      * Constructs a new Thread. Initializes name, daemon status, and ThreadGroup
      * if there is any.
-     * 
-     * @param r
-     *            A runnable to be executed by new thread instance
+     *
+     * @param r A runnable to be executed by new thread instance
      * @return The constructed thread
      */
     public Thread newThread(Runnable r) {
@@ -69,20 +69,21 @@ public class SQSMessagingClientThreadFactory implements ThreadFactory {
         }
         return t;
     }
-    
+
     /**
      * Checks if the thread is member of the thread group
-     * 
+     *
      * @param thread
      * @return True If there is a thread group and the given thread is member of
-     *         the group
+     * the group
      */
+    @Override
     public boolean wasThreadCreatedWithThisThreadGroup(Thread thread) {
         if (threadGroup == null) {
             return false;
         }
         return thread.getThreadGroup() == threadGroup;
     }
-  
+
 }
 

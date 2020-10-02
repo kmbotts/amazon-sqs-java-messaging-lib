@@ -14,12 +14,11 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
+import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
+import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import javax.jms.IllegalStateException;
 import javax.jms.JMSException;
@@ -29,12 +28,12 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.QueueReceiver;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A client uses a MessageConsumer object to receive messages from a
@@ -226,7 +225,7 @@ public class SQSMessageConsumer implements MessageConsumer, QueueReceiver {
 
         try {
             if (!prefetchExecutor.isShutdown()) {
-                LOG.info("Shutting down " + SQSSession.CONSUMER_PREFETCH_EXECUTER_NAME + " executor");
+                LOG.info("Shutting down " + SQSSession.CONSUMER_PREFETCH_EXECUTOR_NAME + " executor");
                 /** Shut down executor. */
                 prefetchExecutor.shutdown();
             }
@@ -235,9 +234,9 @@ public class SQSMessageConsumer implements MessageConsumer, QueueReceiver {
 
             if (!prefetchExecutor.awaitTermination(PREFETCH_EXECUTOR_GRACEFUL_SHUTDOWN_TIME, TimeUnit.SECONDS)) {
 
-                LOG.warn("Can't terminate executor service " + SQSSession.CONSUMER_PREFETCH_EXECUTER_NAME +
-                         " after " + PREFETCH_EXECUTOR_GRACEFUL_SHUTDOWN_TIME +
-                         " seconds, some running threads will be shutdown immediately");
+                LOG.warn("Can't terminate executor service " + SQSSession.CONSUMER_PREFETCH_EXECUTOR_NAME +
+                        " after " + PREFETCH_EXECUTOR_GRACEFUL_SHUTDOWN_TIME +
+                        " seconds, some running threads will be shutdown immediately");
                 prefetchExecutor.shutdownNow();
             }
         } catch (InterruptedException e) {

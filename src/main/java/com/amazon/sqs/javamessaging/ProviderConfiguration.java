@@ -14,14 +14,23 @@
  */
 package com.amazon.sqs.javamessaging;
 
+import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
+
+import java.util.Optional;
+
 public class ProviderConfiguration {
     private int numberOfMessagesToPrefetch;
+    private MessagingClientThreadFactory sessionThreadFactory;
+    private MessagingClientThreadFactory consumerPrefetchThreadFactory;
 
     public ProviderConfiguration() {
         // Set default numberOfMessagesToPrefetch to MIN_BATCH.
-        this.numberOfMessagesToPrefetch = SQSMessagingClientConstants.MIN_BATCH;        
+        this.numberOfMessagesToPrefetch = SQSMessagingClientConstants.MIN_BATCH;
+        // Set default session thread factory
+        this.sessionThreadFactory = SQSSession.SESSION_THREAD_FACTORY;
+        this.consumerPrefetchThreadFactory = SQSSession.CONSUMER_PREFETCH_THREAD_FACTORY;
     }
-    
+
     public int getNumberOfMessagesToPrefetch() {
         return numberOfMessagesToPrefetch;
     }
@@ -38,4 +47,30 @@ public class ProviderConfiguration {
         return this;
     }
 
+    public MessagingClientThreadFactory getSessionThreadFactory() {
+        return sessionThreadFactory;
+    }
+
+    public void setSessionThreadFactory(MessagingClientThreadFactory sessionThreadFactory) {
+        this.sessionThreadFactory = Optional.ofNullable(sessionThreadFactory).orElse(this.sessionThreadFactory);
+    }
+
+    public ProviderConfiguration withSessionThreadFactory(MessagingClientThreadFactory sessionThreadFactory) {
+        setSessionThreadFactory(sessionThreadFactory);
+        return this;
+    }
+
+    public MessagingClientThreadFactory getConsumerPrefetchThreadFactory() {
+        return consumerPrefetchThreadFactory;
+    }
+
+    public void setConsumerPrefetchThreadFactory(MessagingClientThreadFactory consumerPrefetchThreadFactory) {
+        this.consumerPrefetchThreadFactory = Optional.ofNullable(consumerPrefetchThreadFactory).orElse(this.consumerPrefetchThreadFactory);
+        ;
+    }
+
+    public ProviderConfiguration withConsumerThreadFactory(MessagingClientThreadFactory consumerThreadFactory) {
+        setConsumerPrefetchThreadFactory(consumerThreadFactory);
+        return this;
+    }
 }
