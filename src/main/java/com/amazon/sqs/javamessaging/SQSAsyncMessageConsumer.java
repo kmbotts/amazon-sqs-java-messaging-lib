@@ -16,7 +16,7 @@ package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
-import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSAsync;
 
 import java.util.concurrent.ThreadFactory;
 
@@ -34,27 +34,27 @@ import java.util.concurrent.ThreadFactory;
  * The message consumer creates a background thread to prefetch the messages to
  * improve the <code>receive</code> turn-around times.
  */
-public class SQSMessageConsumer extends AbstractMessageConsumer<AmazonSQS> {
+public class SQSAsyncMessageConsumer extends AbstractMessageConsumer<AmazonSQSAsync> {
 
-    SQSMessageConsumer(AbstractConnection<AmazonSQS> parentSQSConnection,
-                       AbstractSession<AmazonSQS> parentSQSSession,
-                       SQSSessionCallbackScheduler<AmazonSQS> sqsSessionRunnable,
-                       SQSQueueDestination destination,
-                       Acknowledger acknowledger,
-                       NegativeAcknowledger<AmazonSQS> negativeAcknowledger,
-                       ThreadFactory threadFactory) {
+    SQSAsyncMessageConsumer(AbstractConnection<AmazonSQSAsync> parentSQSConnection,
+                            AbstractSession<AmazonSQSAsync> parentSQSSession,
+                            SQSSessionCallbackScheduler<AmazonSQSAsync> sqsSessionRunnable,
+                            SQSQueueDestination destination,
+                            Acknowledger acknowledger,
+                            NegativeAcknowledger<AmazonSQSAsync> negativeAcknowledger,
+                            ThreadFactory threadFactory) {
 
         super(parentSQSConnection, parentSQSSession, sqsSessionRunnable, destination, acknowledger, negativeAcknowledger, threadFactory);
     }
 
-    SQSMessageConsumer(AbstractConnection<AmazonSQS> parentSQSConnection,
-                       AbstractSession<AmazonSQS> parentSQSSession,
-                       SQSSessionCallbackScheduler<AmazonSQS> sqsSessionRunnable,
-                       SQSQueueDestination destination,
-                       Acknowledger acknowledger,
-                       NegativeAcknowledger<AmazonSQS> negativeAcknowledger,
-                       ThreadFactory threadFactory,
-                       SQSMessageConsumerPrefetch<AmazonSQS> sqsMessageConsumerPrefetch) {
+    SQSAsyncMessageConsumer(AbstractConnection<AmazonSQSAsync> parentSQSConnection,
+                            AbstractSession<AmazonSQSAsync> parentSQSSession,
+                            SQSSessionCallbackScheduler<AmazonSQSAsync> sqsSessionRunnable,
+                            SQSQueueDestination destination,
+                            Acknowledger acknowledger,
+                            NegativeAcknowledger<AmazonSQSAsync> negativeAcknowledger,
+                            ThreadFactory threadFactory,
+                            SQSMessageConsumerPrefetch<AmazonSQSAsync> sqsMessageConsumerPrefetch) {
 
         super(parentSQSConnection, parentSQSSession, sqsSessionRunnable, destination, acknowledger, negativeAcknowledger, threadFactory, sqsMessageConsumerPrefetch);
     }

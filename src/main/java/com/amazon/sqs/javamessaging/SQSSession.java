@@ -55,7 +55,7 @@ public class SQSSession extends AbstractSession<AmazonSQS> {
 
     SQSSession(AbstractConnection<AmazonSQS> parentSQSConnection,
                AcknowledgeMode acknowledgeMode,
-               Set<SQSMessageConsumer<AmazonSQS>> messageConsumers,
+               Set<AbstractMessageConsumer<AmazonSQS>> messageConsumers,
                Set<AbstractMessageProducer<AmazonSQS>> messageProducers) throws JMSException {
 
         super(parentSQSConnection, acknowledgeMode, messageConsumers, messageProducers);
@@ -64,5 +64,17 @@ public class SQSSession extends AbstractSession<AmazonSQS> {
     @Override
     protected AbstractMessageProducer<AmazonSQS> createMessageProducer(AbstractSQSClientWrapper<AmazonSQS> sqsClientWrapper, AbstractSession<AmazonSQS> session, Destination destination) throws JMSException {
         return new SQSMessageProducer(sqsClientWrapper, session, destination);
+    }
+
+    @Override
+    protected AbstractMessageConsumer<AmazonSQS> createSQSMessageConsumer(SQSQueueDestination destination) {
+        return new SQSMessageConsumer(getParentConnection(),
+                this,
+                getSqsSessionRunnable(),
+                destination,
+                getAcknowledger(),
+                getNegativeAcknowledger(),
+                getParentConnection().getConsumerPrefetchThreadFactory());
+
     }
 }

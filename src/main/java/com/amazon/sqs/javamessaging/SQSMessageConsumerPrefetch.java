@@ -87,7 +87,7 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
 
     private volatile MessageListener messageListener;
 
-    private SQSMessageConsumer<SQS_CLIENT> messageConsumer;
+    private AbstractMessageConsumer<SQS_CLIENT> messageConsumer;
 
     private final SQSSessionCallbackScheduler<SQS_CLIENT> sqsSessionRunnable;
 
@@ -147,12 +147,12 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
         return messageListener;
     }
 
-    void setMessageConsumer(SQSMessageConsumer<SQS_CLIENT> messageConsumer) {
+    void setMessageConsumer(AbstractMessageConsumer<SQS_CLIENT> messageConsumer) {
         this.messageConsumer = messageConsumer;
     }
 
     @Override
-    public SQSMessageConsumer<SQS_CLIENT> getMessageConsumer() {
+    public AbstractMessageConsumer<SQS_CLIENT> getMessageConsumer() {
         return messageConsumer;
     }
 
@@ -452,18 +452,18 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
         }
     }
 
-    public static class MessageManager {
+    public static class MessageManager<SQS_CLIENT extends AmazonSQS> {
 
-        private final PrefetchManager prefetchManager;
+        private final PrefetchManager<SQS_CLIENT> prefetchManager;
 
         private final javax.jms.Message message;
 
-        public MessageManager(PrefetchManager prefetchManager, javax.jms.Message message) {
+        public MessageManager(PrefetchManager<SQS_CLIENT> prefetchManager, javax.jms.Message message) {
             this.prefetchManager = prefetchManager;
             this.message = message;
         }
 
-        public PrefetchManager getPrefetchManager() {
+        public PrefetchManager<SQS_CLIENT> getPrefetchManager() {
             return prefetchManager;
         }
 

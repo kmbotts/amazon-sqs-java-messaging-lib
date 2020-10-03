@@ -77,11 +77,11 @@ public class SQSSessionTest {
 
     private SQSSession sqsSession;
     private SQSConnection parentSQSConnection;
-    private Set<SQSMessageConsumer<AmazonSQS>> messageConsumers;
+    private Set<AbstractMessageConsumer<AmazonSQS>> messageConsumers;
     private Set<AbstractMessageProducer<AmazonSQS>> messageProducers;
     private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(2);
-    private SQSMessageConsumer<AmazonSQS> consumer1;
-    private SQSMessageConsumer<AmazonSQS> consumer2;
+    private SQSMessageConsumer consumer1;
+    private SQSMessageConsumer consumer2;
     private SQSMessageProducer producer1;
     private SQSMessageProducer producer2;
     private AmazonSQSMessagingClientWrapper sqsClientJMSWrapper;

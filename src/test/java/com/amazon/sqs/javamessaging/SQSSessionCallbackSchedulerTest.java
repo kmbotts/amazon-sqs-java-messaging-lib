@@ -69,7 +69,7 @@ public class SQSSessionCallbackSchedulerTest {
     private AmazonSQSMessagingClientWrapper sqsClient;
     private ArrayDeque<SQSSession.CallbackEntry> callbackQueue;
     private Acknowledger acknowledger;
-    private SQSMessageConsumer<AmazonSQS> consumer;
+    private AbstractMessageConsumer<AmazonSQS> consumer;
 
     @Before
     public void setup() {

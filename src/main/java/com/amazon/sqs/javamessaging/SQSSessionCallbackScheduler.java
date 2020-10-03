@@ -45,7 +45,7 @@ import java.util.Set;
 class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runnable {
     private static final Log LOG = LogFactory.getLog(SQSSessionCallbackScheduler.class);
 
-    protected final Deque<CallbackEntry> callbackQueue;
+    protected final Deque<CallbackEntry<SQS_CLIENT>> callbackQueue;
 
     private final AcknowledgeMode acknowledgeMode;
 
@@ -63,7 +63,7 @@ class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runna
      * complete normally and this thread will be responsible to finish the
      * <code>close</code> on message consumer.
      */
-    private SQSMessageConsumer consumerCloseAfterCallback;
+    private AbstractMessageConsumer<SQS_CLIENT> consumerCloseAfterCallback;
 
     private volatile boolean closed = false;
 
@@ -78,7 +78,7 @@ class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runna
                                 AcknowledgeMode acknowledgeMode,
                                 Acknowledger acknowledger,
                                 NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger,
-                                Deque<CallbackEntry> callbackQueue) {
+                                Deque<CallbackEntry<SQS_CLIENT>> callbackQueue) {
         this.session = session;
         this.acknowledgeMode = acknowledgeMode;
         this.acknowledger = acknowledger;
@@ -100,7 +100,7 @@ class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runna
 
     @Override
     public void run() {
-        CallbackEntry callbackEntry = null;
+        CallbackEntry<SQS_CLIENT> callbackEntry = null;
         try {
             while (true) {
                 try {
@@ -126,9 +126,9 @@ class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runna
                     }
 
                     MessageListener messageListener = callbackEntry.getMessageListener();
-                    MessageManager messageManager = callbackEntry.getMessageManager();
+                    MessageManager<SQS_CLIENT> messageManager = callbackEntry.getMessageManager();
                     SQSMessage message = (SQSMessage) messageManager.getMessage();
-                    SQSMessageConsumer messageConsumer = messageManager.getPrefetchManager().getMessageConsumer();
+                    AbstractMessageConsumer<SQS_CLIENT> messageConsumer = messageManager.getPrefetchManager().getMessageConsumer();
                     if (messageConsumer.isClosed()) {
                         nackReceivedMessage(message);
                         continue;
@@ -211,7 +211,7 @@ class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runna
         }
     }
 
-    void setConsumerCloseAfterCallback(SQSMessageConsumer messageConsumer) {
+    void setConsumerCloseAfterCallback(AbstractMessageConsumer<SQS_CLIENT> messageConsumer) {
         consumerCloseAfterCallback = messageConsumer;
     }
 
@@ -270,7 +270,7 @@ class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runna
         List<SQSMessageIdentifier> purgedCallbacks = new ArrayList<>();
         synchronized (callbackQueue) {
             //let's walk over the callback queue
-            Iterator<CallbackEntry> callbackIterator = callbackQueue.iterator();
+            Iterator<CallbackEntry<SQS_CLIENT>> callbackIterator = callbackQueue.iterator();
             while (callbackIterator.hasNext()) {
                 CallbackEntry callbackEntry = callbackIterator.next();
                 SQSMessageIdentifier pendingCallbackIdentifier = SQSMessageIdentifier.fromSQSMessage((SQSMessage) callbackEntry.getMessageManager().getMessage());

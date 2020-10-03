@@ -14,11 +14,13 @@
  */
 package com.amazon.sqs.javamessaging;
 
+import com.amazonaws.services.sqs.AmazonSQS;
+
 /**
  * This interface is helper to notify when the prefetchThread should be resuming
  * messages.
  */
-public interface PrefetchManager {
+public interface PrefetchManager<SQS_CLIENT extends AmazonSQS> {
 
     /**
      * Notify the prefetchThread that the message is dispatched from
@@ -39,5 +41,5 @@ public interface PrefetchManager {
      *
      * @return The message consumer, which owns the prefetchThread
      */
-    SQSMessageConsumer getMessageConsumer();
+    AbstractMessageConsumer<SQS_CLIENT> getMessageConsumer();
 }
