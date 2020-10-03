@@ -22,7 +22,6 @@ import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
 import com.amazon.sqs.javamessaging.util.ExponentialBackoffStrategy;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
@@ -98,9 +97,9 @@ public class SQSMessageConsumerPrefetchTest {
     private final int numberOfMessagesToPrefetch;
 
     private Acknowledger acknowledger;
-    private NegativeAcknowledger<AmazonSQS> negativeAcknowledger;
-    private SQSSessionCallbackScheduler<AmazonSQS> sqsSessionRunnable;
-    private SQSMessageConsumerPrefetch<AmazonSQS> consumerPrefetch;
+    private NegativeAcknowledger negativeAcknowledger;
+    private SQSSessionCallbackScheduler sqsSessionRunnable;
+    private SQSMessageConsumerPrefetch consumerPrefetch;
     private ExponentialBackoffStrategy backoffStrategy;
 
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();

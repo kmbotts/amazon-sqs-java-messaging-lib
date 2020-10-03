@@ -16,7 +16,6 @@ package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.SendMessageAsyncHandler;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.AmazonSQSAsync;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,11 +36,11 @@ import javax.jms.Queue;
  * operation.
  * <p>
  */
-public class SQSAsyncMessageProducer extends AbstractMessageProducer<AmazonSQSAsync> {
+public class SQSAsyncMessageProducer extends AbstractMessageProducer {
     private static final Log LOG = LogFactory.getLog(SQSAsyncMessageProducer.class);
 
     SQSAsyncMessageProducer(AbstractSQSClientWrapper sqsAsyncMessagingClientWrapper,
-                            AbstractSession<AmazonSQSAsync> parentSQSSession,
+                            AbstractSession parentSQSSession,
                             Destination destination) throws JMSException {
         super(sqsAsyncMessagingClientWrapper, parentSQSSession, destination);
     }

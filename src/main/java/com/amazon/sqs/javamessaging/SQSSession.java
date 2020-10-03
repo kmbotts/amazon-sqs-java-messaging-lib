@@ -15,7 +15,7 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazonaws.services.sqs.AmazonSQS;
+import lombok.Builder;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -46,35 +46,19 @@ import java.util.Set;
  * <li>Transactions</li>
  * </ul>
  */
-public class SQSSession extends AbstractSession<AmazonSQS> {
+public class SQSSession extends AbstractSession {
 
-    SQSSession(AbstractConnection<AmazonSQS> parentSQSConnection,
-               AcknowledgeMode acknowledgeMode) throws JMSException {
-        super(parentSQSConnection, acknowledgeMode);
-    }
-
-    SQSSession(AbstractConnection<AmazonSQS> parentSQSConnection,
+    @Builder
+    SQSSession(AbstractConnection connection,
                AcknowledgeMode acknowledgeMode,
-               Set<AbstractMessageConsumer<AmazonSQS>> messageConsumers,
-               Set<AbstractMessageProducer<AmazonSQS>> messageProducers) throws JMSException {
+               Set<AbstractMessageConsumer> messageConsumers,
+               Set<AbstractMessageProducer> messageProducers) throws JMSException {
 
-        super(parentSQSConnection, acknowledgeMode, messageConsumers, messageProducers);
+        super(connection, acknowledgeMode, messageConsumers, messageProducers);
     }
 
     @Override
-    protected AbstractMessageProducer<AmazonSQS> createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession<AmazonSQS> session, Destination destination) throws JMSException {
+    protected AbstractMessageProducer createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session, Destination destination) throws JMSException {
         return new SQSMessageProducer(sqsClientWrapper, session, destination);
-    }
-
-    @Override
-    protected AbstractMessageConsumer<AmazonSQS> createSQSMessageConsumer(SQSQueueDestination destination) {
-        return new SQSMessageConsumer(getParentConnection(),
-                this,
-                getSqsSessionRunnable(),
-                destination,
-                getAcknowledger(),
-                getNegativeAcknowledger(),
-                getParentConnection().getConsumerPrefetchThreadFactory());
-
     }
 }

@@ -14,30 +14,20 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
+import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
+import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
+import com.amazon.sqs.javamessaging.util.SQSMessagingClientThreadFactory;
+import org.junit.Before;
+import org.junit.Test;
 
 import javax.jms.JMSException;
 import javax.jms.MessageListener;
 
-import com.amazon.sqs.javamessaging.SQSConnection;
-import com.amazon.sqs.javamessaging.SQSMessageConsumer;
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch;
-import com.amazon.sqs.javamessaging.SQSQueueDestination;
-import com.amazon.sqs.javamessaging.SQSSession;
-import com.amazon.sqs.javamessaging.SQSSessionCallbackScheduler;
-import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
-import com.amazon.sqs.javamessaging.util.SQSMessagingClientThreadFactory;
-
-import org.junit.Before;
-import org.junit.Test;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -71,11 +61,11 @@ public class SQSMessageConsumerTest {
     private SQSQueueDestination destination;
 
     @Before
-    public void setup() throws JMSException{
+    public void setup() throws JMSException {
 
         sqsConnection = mock(SQSConnection.class);
-
-        sqsSession = spy(new SQSSession(sqsConnection, AcknowledgeMode.ACK_AUTO));//mock(SQSSession.class);
+        when(sqsConnection.getSessionThreadFactory()).thenReturn(AbstractSession.SESSION_THREAD_FACTORY);
+        sqsSession = spy(new SQSSession(sqsConnection, AcknowledgeMode.ACK_AUTO, null, null));
         sqsSessionRunnable = mock(SQSSessionCallbackScheduler.class);
 
         acknowledger = mock(Acknowledger.class);
@@ -87,7 +77,7 @@ public class SQSMessageConsumerTest {
         destination = new SQSQueueDestination(QUEUE_NAME, QUEUE_URL_1);
 
         consumer = spy(new SQSMessageConsumer(sqsConnection, sqsSession, sqsSessionRunnable,
-                                          destination, acknowledger, negativeAcknowledger, threadFactory));
+                destination, acknowledger, negativeAcknowledger, threadFactory, null));
 
 
         sqsMessageConsumerPrefetch = mock(SQSMessageConsumerPrefetch.class);

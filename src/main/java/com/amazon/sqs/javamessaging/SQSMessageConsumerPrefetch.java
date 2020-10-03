@@ -22,7 +22,6 @@ import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
 import com.amazon.sqs.javamessaging.util.ExponentialBackoffStrategy;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
@@ -56,7 +55,7 @@ import java.util.UUID;
  * <p>
  * Add re-tries on top of <code>AmazonSQSClient</code> re-tries on SQS calls.
  */
-public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements Runnable, PrefetchManager {
+public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
 
     private static final Log LOG = LogFactory.getLog(SQSMessageConsumerPrefetch.class);
 
@@ -83,13 +82,13 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
 
     private final Acknowledger acknowledger;
 
-    private final NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger;
+    private final NegativeAcknowledger negativeAcknowledger;
 
     private volatile MessageListener messageListener;
 
-    private AbstractMessageConsumer<SQS_CLIENT> messageConsumer;
+    private AbstractMessageConsumer messageConsumer;
 
-    private final SQSSessionCallbackScheduler<SQS_CLIENT> sqsSessionRunnable;
+    private final SQSSessionCallbackScheduler sqsSessionRunnable;
 
     /**
      * Counter on how many messages are prefetched into internal messageQueue.
@@ -125,9 +124,9 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
      */
     protected ExponentialBackoffStrategy backoffStrategy = new ExponentialBackoffStrategy(25, 25, 2000);
 
-    SQSMessageConsumerPrefetch(SQSSessionCallbackScheduler<SQS_CLIENT> sqsSessionRunnable,
+    SQSMessageConsumerPrefetch(SQSSessionCallbackScheduler sqsSessionRunnable,
                                Acknowledger acknowledger,
-                               NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger,
+                               NegativeAcknowledger negativeAcknowledger,
                                SQSQueueDestination sqsDestination,
                                AbstractSQSClientWrapper amazonSQSClient,
                                int numberOfMessagesToPrefetch) {
@@ -147,12 +146,12 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
         return messageListener;
     }
 
-    void setMessageConsumer(AbstractMessageConsumer<SQS_CLIENT> messageConsumer) {
+    void setMessageConsumer(AbstractMessageConsumer messageConsumer) {
         this.messageConsumer = messageConsumer;
     }
 
     @Override
-    public AbstractMessageConsumer<SQS_CLIENT> getMessageConsumer() {
+    public AbstractMessageConsumer getMessageConsumer() {
         return messageConsumer;
     }
 
@@ -452,18 +451,18 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
         }
     }
 
-    public static class MessageManager<SQS_CLIENT extends AmazonSQS> {
+    public static class MessageManager {
 
-        private final PrefetchManager<SQS_CLIENT> prefetchManager;
+        private final PrefetchManager prefetchManager;
 
         private final javax.jms.Message message;
 
-        public MessageManager(PrefetchManager<SQS_CLIENT> prefetchManager, javax.jms.Message message) {
+        public MessageManager(PrefetchManager prefetchManager, javax.jms.Message message) {
             this.prefetchManager = prefetchManager;
             this.message = message;
         }
 
-        public PrefetchManager<SQS_CLIENT> getPrefetchManager() {
+        public PrefetchManager getPrefetchManager() {
             return prefetchManager;
         }
 

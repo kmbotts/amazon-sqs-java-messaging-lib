@@ -24,7 +24,6 @@ import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
 import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
 import com.amazon.sqs.javamessaging.util.SQSMessagingClientThreadFactory;
-import com.amazonaws.services.sqs.AmazonSQS;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.logging.Log;
@@ -58,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -88,7 +88,7 @@ import java.util.concurrent.TimeUnit;
  * <li>Transactions</li>
  * </ul>
  */
-public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements QueueSession {
+public abstract class AbstractSession implements QueueSession {
     private static final Log LOG = LogFactory.getLog(AbstractSession.class);
 
     private static final int SESSION_EXECUTOR_GRACEFUL_SHUTDOWN_TIME = 10;
@@ -132,9 +132,11 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      */
     private volatile boolean closing = false;
 
-    private final AbstractSQSClientWrapper amazonSQSClient;
+    @Getter(value = AccessLevel.PROTECTED)
+    private final AbstractSQSClientWrapper sqsClientWrapper;
 
-    private final AbstractConnection<SQS_CLIENT> parentSQSConnection;
+    @Getter(value = AccessLevel.PROTECTED)
+    private final AbstractConnection delegateConnection;
 
     /**
      * AcknowledgeMode of this Session.
@@ -151,23 +153,23 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      * Negative acknowledger of this Session
      */
     @Getter(value = AccessLevel.PROTECTED)
-    private final NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger;
+    private final NegativeAcknowledger negativeAcknowledger;
 
     /**
      * Set of MessageProducer under this Session
      */
-    private final Set<AbstractMessageProducer<SQS_CLIENT>> messageProducers;
+    private final Set<AbstractMessageProducer> messageProducers;
 
     /**
      * Set of MessageConsumer under this Session
      */
-    private final Set<AbstractMessageConsumer<SQS_CLIENT>> messageConsumers;
+    private final Set<AbstractMessageConsumer> messageConsumers;
 
     /**
      * Thread that is responsible to guarantee serial execution of message
      * delivery on message listeners
      */
-    private final SQSSessionCallbackScheduler<SQS_CLIENT> sqsSessionRunnable;
+    private final SQSSessionCallbackScheduler callbackScheduler;
 
     /**
      * Executor service for running MessageListener.
@@ -186,35 +188,29 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      * Used to determine the active consumer, whose is dispatching the message
      * on the callback. Guarded by stateLock
      */
-    private AbstractMessageConsumer<SQS_CLIENT> activeConsumerInCallback = null;
+    private AbstractMessageConsumer activeConsumerInCallback = null;
 
-    AbstractSession(AbstractConnection<SQS_CLIENT> parentSQSConnection,
-                    AcknowledgeMode acknowledgeMode) throws JMSException {
-        this(parentSQSConnection, acknowledgeMode,
-                Collections.newSetFromMap(new ConcurrentHashMap<>()),
-                Collections.newSetFromMap(new ConcurrentHashMap<>()));
-    }
-
-    AbstractSession(AbstractConnection<SQS_CLIENT> parentSQSConnection,
+    AbstractSession(AbstractConnection delegateConnection,
                     AcknowledgeMode acknowledgeMode,
-                    Set<AbstractMessageConsumer<SQS_CLIENT>> messageConsumers,
-                    Set<AbstractMessageProducer<SQS_CLIENT>> messageProducers) throws JMSException {
-        this.parentSQSConnection = parentSQSConnection;
-        this.amazonSQSClient = parentSQSConnection.getSqsClientWrapper();
-        this.acknowledgeMode = acknowledgeMode;
-        this.acknowledger = this.acknowledgeMode.createAcknowledger(amazonSQSClient, this);
-        this.negativeAcknowledger = new NegativeAcknowledger<>(amazonSQSClient);
-        this.sqsSessionRunnable = new SQSSessionCallbackScheduler<>(this, acknowledgeMode, acknowledger, negativeAcknowledger);
-        this.executor = Executors.newSingleThreadExecutor(parentSQSConnection.getSessionThreadFactory());
-        this.messageConsumers = messageConsumers;
-        this.messageProducers = messageProducers;
+                    Set<AbstractMessageConsumer> messageConsumers,
+                    Set<AbstractMessageProducer> messageProducers) throws JMSException {
 
-        executor.execute(sqsSessionRunnable);
+        this.delegateConnection = delegateConnection;
+        this.sqsClientWrapper = delegateConnection.getSqsClientWrapper();
+        this.acknowledgeMode = acknowledgeMode;
+        this.acknowledger = this.acknowledgeMode.createAcknowledger(sqsClientWrapper, this);
+        this.negativeAcknowledger = new NegativeAcknowledger(sqsClientWrapper);
+        this.callbackScheduler = new SQSSessionCallbackScheduler(this, acknowledgeMode, acknowledger, negativeAcknowledger);
+        this.executor = Executors.newSingleThreadExecutor(delegateConnection.getSessionThreadFactory());
+        this.messageConsumers = Optional.ofNullable(messageConsumers).orElse(Collections.newSetFromMap(new ConcurrentHashMap<>()));
+        this.messageProducers = Optional.ofNullable(messageProducers).orElse(Collections.newSetFromMap(new ConcurrentHashMap<>()));
+
+        executor.execute(callbackScheduler);
     }
 
-    protected abstract AbstractMessageProducer<SQS_CLIENT> createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
-                                                                                 AbstractSession<SQS_CLIENT> session,
-                                                                                 Destination destination) throws JMSException;
+    protected abstract AbstractMessageProducer createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
+                                                                     AbstractSession session,
+                                                                     Destination destination) throws JMSException;
 
     //region QueueSession Methods
     //region Supported Methods
@@ -230,7 +226,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     @Override
     public Queue createQueue(String queueName) throws JMSException {
         checkClosed();
-        return new SQSQueueDestination(queueName, amazonSQSClient.getQueueUrl(queueName).getQueueUrl());
+        return new SQSQueueDestination(queueName, sqsClientWrapper.getQueueUrl(queueName).getQueueUrl());
     }
 
     /**
@@ -406,7 +402,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         //if not, we would end up consuming messages out of order
         Map<String, Set<String>> queueToGroupsMapping = getAffectedGroupsPerQueueUrl(unAckedMessages);
 
-        for (AbstractMessageConsumer<SQS_CLIENT> consumer : this.messageConsumers) {
+        for (AbstractMessageConsumer consumer : this.messageConsumers) {
             SQSQueueDestination sqsQueue = (SQSQueueDestination) consumer.getQueue();
             Set<String> affectedGroups = queueToGroupsMapping.get(sqsQueue.getQueueUrl());
             if (affectedGroups != null) {
@@ -414,7 +410,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
             }
         }
 
-        unAckedMessages.addAll(sqsSessionRunnable.purgeScheduledCallbacksForQueuesAndGroups(queueToGroupsMapping));
+        unAckedMessages.addAll(callbackScheduler.purgeScheduledCallbacksForQueuesAndGroups(queueToGroupsMapping));
 
         if (!unAckedMessages.isEmpty()) {
             negativeAcknowledger.bulkAction(unAckedMessages, unAckedMessages.size());
@@ -439,10 +435,10 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         if (destination != null && !(destination instanceof SQSQueueDestination)) {
             throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
         }
-        AbstractMessageProducer<SQS_CLIENT> messageProducer;
+        AbstractMessageProducer messageProducer;
         synchronized (stateLock) {
             checkClosing();
-            messageProducer = createMessageProducer(amazonSQSClient, this, destination);
+            messageProducer = createMessageProducer(sqsClientWrapper, this, destination);
             messageProducers.add(messageProducer);
         }
         return messageProducer;
@@ -462,7 +458,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         if (!(destination instanceof SQSQueueDestination)) {
             throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
         }
-        AbstractMessageConsumer<SQS_CLIENT> messageConsumer;
+        AbstractMessageConsumer messageConsumer;
         synchronized (stateLock) {
             checkClosing();
             messageConsumer = createSQSMessageConsumer((SQSQueueDestination) destination);
@@ -698,9 +694,9 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
 
         if (shouldClose) {
             try {
-                parentSQSConnection.removeSession(this);
+                delegateConnection.removeSession(this);
 
-                for (AbstractMessageConsumer<SQS_CLIENT> messageConsumer : messageConsumers) {
+                for (AbstractMessageConsumer messageConsumer : messageConsumers) {
                     messageConsumer.close();
                 }
 
@@ -715,7 +711,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
 
                         waitForCallbackComplete();
 
-                        sqsSessionRunnable.close();
+                        callbackScheduler.close();
 
                         for (MessageProducer messageProducer : messageProducers) {
                             messageProducer.close();
@@ -754,13 +750,23 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         }
     }
 
-    protected abstract AbstractMessageConsumer<SQS_CLIENT> createSQSMessageConsumer(SQSQueueDestination destination);
+    private AbstractMessageConsumer createSQSMessageConsumer(SQSQueueDestination destination) {
+        return SQSMessageConsumer.builder()
+                .connection(getDelegateConnection())
+                .session(this)
+                .callbackScheduler(getCallbackScheduler())
+                .destination(destination)
+                .acknowledger(getAcknowledger())
+                .negativeAcknowledger(getNegativeAcknowledger())
+                .threadFactory(getDelegateConnection().getConsumerPrefetchThreadFactory())
+                .build();
+    }
 
     /**
      * This is used in MessageConsumer. When MessageConsumer is closed
      * it will remove itself from list of consumers.
      */
-    void removeConsumer(AbstractMessageConsumer<SQS_CLIENT> consumer) {
+    void removeConsumer(AbstractMessageConsumer consumer) {
         messageConsumers.remove(consumer);
     }
 
@@ -768,11 +774,11 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      * This is used in MessageProducer. When MessageProducer is closed
      * it will remove itself from list of producers.
      */
-    void removeProducer(AbstractMessageProducer<SQS_CLIENT> producer) {
+    void removeProducer(AbstractMessageProducer producer) {
         messageProducers.remove(producer);
     }
 
-    void startingCallback(AbstractMessageConsumer<SQS_CLIENT> consumer) throws JMSException {
+    void startingCallback(AbstractMessageConsumer consumer) throws JMSException {
         if (closed) {
             return;
         }
@@ -806,7 +812,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         }
     }
 
-    void waitForConsumerCallbackToComplete(AbstractMessageConsumer<SQS_CLIENT> consumer) {
+    void waitForConsumerCallbackToComplete(AbstractMessageConsumer consumer) {
         synchronized (stateLock) {
             while (activeConsumerInCallback == consumer) {
                 try {
@@ -855,7 +861,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         synchronized (stateLock) {
             checkClosing();
             running = true;
-            for (AbstractMessageConsumer<SQS_CLIENT> messageConsumer : messageConsumers) {
+            for (AbstractMessageConsumer messageConsumer : messageConsumers) {
                 messageConsumer.startPrefetch();
             }
             stateLock.notifyAll();
@@ -867,7 +873,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         synchronized (stateLock) {
             checkClosing();
             running = false;
-            for (AbstractMessageConsumer<SQS_CLIENT> messageConsumer : messageConsumers) {
+            for (AbstractMessageConsumer messageConsumer : messageConsumers) {
                 messageConsumer.stopPrefetch();
             }
             waitForCallbackComplete();
@@ -878,9 +884,6 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     //endregion
 
     // region Unit Tests Utility Functions
-    AbstractConnection<SQS_CLIENT> getParentConnection() {
-        return parentSQSConnection;
-    }
 
     /**
      * This does not create SQS Queue. This method is only to create JMS Queue
@@ -895,14 +898,14 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     Queue createQueue(String queueName, String ownerAccountId) throws JMSException {
         checkClosed();
         return new SQSQueueDestination(
-                queueName, amazonSQSClient.getQueueUrl(queueName, ownerAccountId).getQueueUrl());
+                queueName, sqsClientWrapper.getQueueUrl(queueName, ownerAccountId).getQueueUrl());
     }
 
     boolean isCallbackActive() {
         return activeConsumerInCallback != null;
     }
 
-    void setActiveConsumerInCallback(AbstractMessageConsumer<SQS_CLIENT> consumer) {
+    void setActiveConsumerInCallback(AbstractMessageConsumer consumer) {
         activeConsumerInCallback = consumer;
     }
 
@@ -934,16 +937,16 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         return running;
     }
 
-    SQSSessionCallbackScheduler<SQS_CLIENT> getSqsSessionRunnable() {
-        return sqsSessionRunnable;
+    SQSSessionCallbackScheduler getCallbackScheduler() {
+        return callbackScheduler;
     }
     //endregion
 
-    static class CallbackEntry<SQS_CLIENT extends AmazonSQS> {
+    static class CallbackEntry {
         private final MessageListener messageListener;
-        private final MessageManager<SQS_CLIENT> messageManager;
+        private final MessageManager messageManager;
 
-        CallbackEntry(MessageListener messageListener, MessageManager<SQS_CLIENT> messageManager) {
+        CallbackEntry(MessageListener messageListener, MessageManager messageManager) {
             this.messageListener = messageListener;
             this.messageManager = messageManager;
         }
@@ -952,7 +955,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
             return messageListener;
         }
 
-        public MessageManager<SQS_CLIENT> getMessageManager() {
+        public MessageManager getMessageManager() {
             return messageManager;
         }
     }

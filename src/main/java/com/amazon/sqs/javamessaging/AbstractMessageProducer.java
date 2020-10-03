@@ -19,7 +19,6 @@ import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazon.sqs.javamessaging.message.SQSMessage.JMSMessagePropertyValue;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.util.Base64;
@@ -54,7 +53,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * operation.
  * <p>
  */
-public abstract class AbstractMessageProducer<SQS_CLIENT extends AmazonSQS> implements QueueSender {
+public abstract class AbstractMessageProducer implements QueueSender {
     private static final Log LOG = LogFactory.getLog(AbstractMessageProducer.class);
 
     private static final long MAXIMUM_DELIVERY_DELAY_MILLISECONDS = TimeUnit.MILLISECONDS.convert(15, TimeUnit.MINUTES);
@@ -91,12 +90,12 @@ public abstract class AbstractMessageProducer<SQS_CLIENT extends AmazonSQS> impl
     @Getter(value = AccessLevel.PACKAGE)
     private final AbstractSQSClientWrapper sqsClientWrapper;
 
-    private final AbstractSession<SQS_CLIENT> parentSQSSession;
+    private final AbstractSession parentSQSSession;
 
     private final SQSQueueDestination sqsDestination;
 
     AbstractMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
-                            AbstractSession<SQS_CLIENT> parentSQSSession,
+                            AbstractSession parentSQSSession,
                             Destination destination) throws JMSException {
         this.sqsClientWrapper = sqsClientWrapper;
         this.parentSQSSession = parentSQSSession;

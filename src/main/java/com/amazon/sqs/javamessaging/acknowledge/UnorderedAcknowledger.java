@@ -17,7 +17,6 @@ package com.amazon.sqs.javamessaging.acknowledge;
 import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
 import com.amazon.sqs.javamessaging.AbstractSession;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 
 import javax.jms.JMSException;
@@ -32,17 +31,17 @@ import java.util.Map;
  * <p>
  * This class is not safe for concurrent use.
  */
-public class UnorderedAcknowledger<SQS_CLIENT extends AmazonSQS> implements Acknowledger {
+public class UnorderedAcknowledger implements Acknowledger {
 
     private final AbstractSQSClientWrapper amazonSQSClient;
 
-    private final AbstractSession<SQS_CLIENT> session;
+    private final AbstractSession session;
 
     // key is the receipt handle of the message and value is the message
     // identifier
     private final Map<String, SQSMessageIdentifier> unAckMessages;
 
-    public UnorderedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
+    public UnorderedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
         this.unAckMessages = new HashMap<>();

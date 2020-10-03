@@ -16,7 +16,6 @@ package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
 import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
-import com.amazonaws.services.sqs.AmazonSQS;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.logging.Log;
@@ -75,7 +74,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Exception listener on connection is not supported.
  */
-public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implements QueueConnection {
+public abstract class AbstractConnection implements QueueConnection {
     private static final Log LOG = LogFactory.getLog(AbstractConnection.class);
 
     /**
@@ -140,9 +139,6 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
         this.consumerPrefetchThreadFactory = providerConfiguration.getConsumerPrefetchThreadFactory();
     }
 
-    protected abstract AbstractSession<SQS_CLIENT> createSession(AbstractConnection<SQS_CLIENT> connection,
-                                                                 AcknowledgeMode acknowledgeMode) throws JMSException;
-
     //region QueueConnection Supported Methods
 
     /**
@@ -167,7 +163,7 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
         if (transacted || acknowledgeMode == Session.SESSION_TRANSACTED)
             throw new JMSException("SQSSession does not support transacted");
 
-        AbstractSession<SQS_CLIENT> sqsSession;
+        AbstractSession sqsSession;
         if (acknowledgeMode == Session.AUTO_ACKNOWLEDGE) {
             sqsSession = createSession(this, AcknowledgeMode.ACK_AUTO.withOriginalAcknowledgeMode(acknowledgeMode));
 
@@ -505,6 +501,13 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
     //endregion
 
     //region Internal Methods
+    private AbstractSession createSession(AbstractConnection connection,
+                                          AcknowledgeMode acknowledgeMode) throws JMSException {
+        return SQSSession.builder()
+                .connection(connection)
+                .acknowledgeMode(acknowledgeMode)
+                .build();
+    }
 
     /**
      * Checks if the connection close is in-progress or already completed.

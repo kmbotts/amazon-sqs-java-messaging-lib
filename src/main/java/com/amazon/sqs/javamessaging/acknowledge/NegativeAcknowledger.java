@@ -18,7 +18,6 @@ import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
 import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch.MessageManager;
 import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
 
@@ -37,7 +36,7 @@ import java.util.List;
  * <p>
  * Negative acknowledge can potentially cause duplicate deliveries.
  */
-public class NegativeAcknowledger<SQS_CLIENT extends AmazonSQS> extends BulkSQSOperation {
+public class NegativeAcknowledger extends BulkSQSOperation {
 
     private static final int NACK_TIMEOUT = 0;
 

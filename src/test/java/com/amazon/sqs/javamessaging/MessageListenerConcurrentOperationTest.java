@@ -14,28 +14,23 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSConnection;
-import com.amazon.sqs.javamessaging.SQSMessageConsumer;
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch;
-import com.amazon.sqs.javamessaging.SQSQueueDestination;
-import com.amazon.sqs.javamessaging.SQSSession;
-import com.amazon.sqs.javamessaging.SQSSessionCallbackScheduler;
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
+import org.junit.Before;
+import org.junit.Test;
 
-import javax.jms.*;
 import javax.jms.IllegalStateException;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import javax.jms.Session;
 
 import java.util.Collections;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -93,7 +88,7 @@ public class MessageListenerConcurrentOperationTest {
         amazonSQSClient = mock(AmazonSQSMessagingClientWrapper.class);
 
         connection = new SQSConnection(amazonSQSClient, NUMBER_OF_MESSAGES_TO_PREFETCH);
-        session = new SQSSession(connection, AcknowledgeMode.ACK_AUTO);
+        session = new SQSSession(connection, AcknowledgeMode.ACK_AUTO, null, null);
         SQSSessionCallbackScheduler sqsSessionRunnable = new SQSSessionCallbackScheduler(session, AcknowledgeMode.ACK_AUTO, acknowledger, negativeAcknowledger);
 
         SQSMessageConsumer consumer = mock(SQSMessageConsumer.class);
@@ -329,7 +324,7 @@ public class MessageListenerConcurrentOperationTest {
                 } catch (BrokenBarrierException e) {
                     e.printStackTrace();
                 }
-                session.getSqsSessionRunnable().scheduleCallBacks(msgListener, Collections.singletonList(msgManager));
+                session.getCallbackScheduler().scheduleCallBacks(msgListener, Collections.singletonList(msgManager));
             }
         });
 

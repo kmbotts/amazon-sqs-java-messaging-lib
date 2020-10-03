@@ -21,7 +21,6 @@ import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,13 +62,13 @@ public class SQSSessionCallbackSchedulerTest {
     private static final String QUEUE_URL_2 = "QueueUrl2";
 
     private SQSSession sqsSession;
-    private NegativeAcknowledger<AmazonSQS> negativeAcknowledger;
-    private SQSSessionCallbackScheduler<AmazonSQS> sqsSessionRunnable;
+    private NegativeAcknowledger negativeAcknowledger;
+    private SQSSessionCallbackScheduler sqsSessionRunnable;
     private SQSConnection sqsConnection;
     private AmazonSQSMessagingClientWrapper sqsClient;
     private ArrayDeque<SQSSession.CallbackEntry> callbackQueue;
     private Acknowledger acknowledger;
-    private AbstractMessageConsumer<AmazonSQS> consumer;
+    private AbstractMessageConsumer consumer;
 
     @Before
     public void setup() {
@@ -81,7 +80,7 @@ public class SQSSessionCallbackSchedulerTest {
                 .thenReturn(sqsClient);
 
         sqsSession = mock(SQSSession.class);
-        when(sqsSession.getParentConnection())
+        when(sqsSession.getDelegateConnection())
                 .thenReturn(sqsConnection);
 
         negativeAcknowledger = mock(NegativeAcknowledger.class);

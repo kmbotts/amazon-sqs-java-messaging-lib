@@ -17,7 +17,6 @@ package com.amazon.sqs.javamessaging;
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
@@ -77,8 +76,8 @@ public class SQSSessionTest {
 
     private SQSSession sqsSession;
     private SQSConnection parentSQSConnection;
-    private Set<AbstractMessageConsumer<AmazonSQS>> messageConsumers;
-    private Set<AbstractMessageProducer<AmazonSQS>> messageProducers;
+    private Set<AbstractMessageConsumer> messageConsumers;
+    private Set<AbstractMessageProducer> messageProducers;
     private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(2);
     private SQSMessageConsumer consumer1;
     private SQSMessageConsumer consumer2;
@@ -506,7 +505,7 @@ public class SQSSessionTest {
         when(msgManager.getPrefetchManager())
                 .thenReturn(prefetchManager);
 
-        sqsSession.getSqsSessionRunnable().scheduleCallBacks(null, Collections.singletonList(msgManager));
+        sqsSession.getCallbackScheduler().scheduleCallBacks(null, Collections.singletonList(msgManager));
 
         // Waiting for the thread to hold state lock
         holdStateLock.await();
@@ -1047,7 +1046,7 @@ public class SQSSessionTest {
      */
     @Test
     public void testRecover() throws JMSException, InterruptedException {
-        sqsSession = new SQSSession(parentSQSConnection, AcknowledgeMode.ACK_UNORDERED);
+        sqsSession = new SQSSession(parentSQSConnection, AcknowledgeMode.ACK_UNORDERED, null, null);
         when(parentSQSConnection.getNumberOfMessagesToPrefetch()).thenReturn(4);
 
         when(sqsClientJMSWrapper.getQueueUrl("queue1"))

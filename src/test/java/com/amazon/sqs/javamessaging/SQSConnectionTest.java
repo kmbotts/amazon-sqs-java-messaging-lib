@@ -14,16 +14,16 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import javax.jms.*;
-import javax.jms.IllegalStateException;
-
 import org.junit.Before;
 import org.junit.Test;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSConnection;
-import com.amazon.sqs.javamessaging.SQSQueueDestination;
-import com.amazon.sqs.javamessaging.SQSSession;
+import javax.jms.ExceptionListener;
+import javax.jms.IllegalStateException;
+import javax.jms.InvalidClientIDException;
+import javax.jms.JMSException;
+import javax.jms.Queue;
+import javax.jms.Session;
+import javax.jms.Topic;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -31,8 +31,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 /**
  * Test the SQSConnectionTest class
@@ -780,26 +786,26 @@ public class SQSConnectionTest {
 
         SQSSession session = (SQSSession)sqsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         assertEquals(Session.AUTO_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
         assertEquals(Session.CLIENT_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.DUPS_OK_ACKNOWLEDGE);
         assertEquals(Session.DUPS_OK_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, SQSSession.UNORDERED_ACKNOWLEDGE);
         session.isRunning();
         assertEquals(SQSSession.UNORDERED_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
@@ -819,26 +825,26 @@ public class SQSConnectionTest {
 
         SQSSession session = (SQSSession)sqsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         assertEquals(Session.AUTO_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
         assertEquals(Session.CLIENT_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.DUPS_OK_ACKNOWLEDGE);
         assertEquals(Session.DUPS_OK_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, SQSSession.UNORDERED_ACKNOWLEDGE);
         session.isRunning();
         assertEquals(SQSSession.UNORDERED_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getParentConnection());
+        assertEquals(sqsConnection, session.getDelegateConnection());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 

@@ -17,7 +17,6 @@ package com.amazon.sqs.javamessaging.acknowledge;
 import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
 import com.amazon.sqs.javamessaging.AbstractSession;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 
 import javax.jms.JMSException;
@@ -31,12 +30,12 @@ import java.util.List;
  * when the message listener the session has called to process the message
  * successfully returns.
  */
-public class AutoAcknowledger<SQS_CLIENT extends AmazonSQS> implements Acknowledger {
+public class AutoAcknowledger implements Acknowledger {
 
     private final AbstractSQSClientWrapper amazonSQSClient;
-    private final AbstractSession<SQS_CLIENT> session;
+    private final AbstractSession session;
 
-    public AutoAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
+    public AutoAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
     }

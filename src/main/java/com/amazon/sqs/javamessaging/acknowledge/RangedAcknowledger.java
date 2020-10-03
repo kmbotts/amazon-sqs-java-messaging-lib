@@ -17,7 +17,6 @@ package com.amazon.sqs.javamessaging.acknowledge;
 import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
 import com.amazon.sqs.javamessaging.AbstractSession;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import org.apache.commons.logging.Log;
@@ -40,16 +39,16 @@ import java.util.Queue;
  * <p>
  * This class is not safe for concurrent use.
  */
-public class RangedAcknowledger<SQS_CLIENT extends AmazonSQS> extends BulkSQSOperation implements Acknowledger {
+public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger {
     private static final Log LOG = LogFactory.getLog(RangedAcknowledger.class);
 
     private final AbstractSQSClientWrapper amazonSQSClient;
 
-    private final AbstractSession<SQS_CLIENT> session;
+    private final AbstractSession session;
 
     private final Queue<SQSMessageIdentifier> unAckMessages;
 
-    public RangedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
+    public RangedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
         this.unAckMessages = new LinkedList<>();

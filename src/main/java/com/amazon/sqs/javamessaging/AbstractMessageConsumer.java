@@ -14,10 +14,7 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
-import com.amazonaws.services.sqs.AmazonSQS;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -49,7 +46,7 @@ import java.util.concurrent.TimeUnit;
  * The message consumer creates a background thread to prefetch the messages to
  * improve the <code>receive</code> turn-around times.
  */
-public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> implements QueueReceiver {
+public abstract class AbstractMessageConsumer implements QueueReceiver {
     private static final Log LOG = LogFactory.getLog(AbstractMessageConsumer.class);
     public static final int PREFETCH_EXECUTOR_GRACEFUL_SHUTDOWN_TIME = 30;
 
@@ -57,9 +54,9 @@ public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> impl
 
     private final SQSQueueDestination sqsDestination;
 
-    private final AbstractSession<SQS_CLIENT> parentSQSSession;
+    private final AbstractSession delegateSession;
 
-    private final SQSSessionCallbackScheduler<SQS_CLIENT> sqsSessionRunnable;
+    private final SQSSessionCallbackScheduler sqsSessionRunnable;
 
     /**
      * Executor for prefetch thread.
@@ -69,35 +66,15 @@ public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> impl
     /**
      * Prefetch Runnable. This include keeping internal message buffer filled and call MessageListener if set.
      */
-    private final SQSMessageConsumerPrefetch<SQS_CLIENT> sqsMessageConsumerPrefetch;
+    private final SQSMessageConsumerPrefetch sqsMessageConsumerPrefetch;
 
-    AbstractMessageConsumer(AbstractConnection<SQS_CLIENT> parentSQSConnection,
-                            AbstractSession<SQS_CLIENT> parentSQSSession,
-                            SQSSessionCallbackScheduler<SQS_CLIENT> sqsSessionRunnable,
+    AbstractMessageConsumer(AbstractSession delegateSession,
+                            SQSSessionCallbackScheduler sqsSessionRunnable,
                             SQSQueueDestination destination,
-                            Acknowledger acknowledger,
-                            NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger,
-                            ThreadFactory threadFactory) {
-
-        this(parentSQSConnection, parentSQSSession,
-                sqsSessionRunnable, destination,
-                acknowledger, negativeAcknowledger, threadFactory,
-                new SQSMessageConsumerPrefetch<>(sqsSessionRunnable, acknowledger, negativeAcknowledger, destination,
-                        parentSQSConnection.getSqsClientWrapper(),
-                        parentSQSConnection.getNumberOfMessagesToPrefetch()));
-
-    }
-
-    AbstractMessageConsumer(AbstractConnection<SQS_CLIENT> parentSQSConnection,
-                            AbstractSession<SQS_CLIENT> parentSQSSession,
-                            SQSSessionCallbackScheduler<SQS_CLIENT> sqsSessionRunnable,
-                            SQSQueueDestination destination,
-                            Acknowledger acknowledger,
-                            NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger,
                             ThreadFactory threadFactory,
-                            SQSMessageConsumerPrefetch<SQS_CLIENT> sqsMessageConsumerPrefetch) {
+                            SQSMessageConsumerPrefetch sqsMessageConsumerPrefetch) {
 
-        this.parentSQSSession = parentSQSSession;
+        this.delegateSession = delegateSession;
         this.sqsDestination = destination;
         this.sqsSessionRunnable = sqsSessionRunnable;
         this.sqsMessageConsumerPrefetch = sqsMessageConsumerPrefetch;
@@ -116,7 +93,7 @@ public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> impl
      */
     @Override
     public Queue getQueue() throws JMSException {
-        return (Queue) sqsDestination;
+        return sqsDestination;
     }
 
     /**
@@ -209,7 +186,7 @@ public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> impl
             return;
         }
 
-        if (parentSQSSession.isActiveCallbackSessionThread()) {
+        if (delegateSession.isActiveCallbackSessionThread()) {
             sqsSessionRunnable.setConsumerCloseAfterCallback(this);
             return;
         }
@@ -224,7 +201,7 @@ public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> impl
 
         sqsMessageConsumerPrefetch.close();
 
-        parentSQSSession.removeConsumer(this);
+        delegateSession.removeConsumer(this);
 
         try {
             if (!prefetchExecutor.isShutdown()) {
@@ -233,7 +210,7 @@ public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> impl
                 prefetchExecutor.shutdown();
             }
 
-            parentSQSSession.waitForConsumerCallbackToComplete(this);
+            delegateSession.waitForConsumerCallbackToComplete(this);
 
             if (!prefetchExecutor.awaitTermination(PREFETCH_EXECUTOR_GRACEFUL_SHUTDOWN_TIME, TimeUnit.SECONDS)) {
 
