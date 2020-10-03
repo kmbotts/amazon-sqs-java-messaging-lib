@@ -17,6 +17,7 @@ package com.amazon.sqs.javamessaging;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQSAsync;
+import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
 
 import javax.jms.JMSException;
 import javax.jms.QueueConnection;
@@ -40,17 +41,26 @@ import javax.jms.QueueConnection;
  * methods.
  */
 
-public class SQSAsyncConnectionFactory extends AbstractConnectionFactory<AmazonSQSAsync> {
+public class SQSAsyncConnectionFactory extends AbstractConnectionFactory {
 
-    protected SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration,
-                                        AmazonSQSAsync amazonSQSAsync) {
-        super(providerConfiguration, amazonSQSAsync);
+    private final AmazonSQSAsync amazonSQSAsync;
+
+    public SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration) {
+        this(providerConfiguration, AmazonSQSAsyncClientBuilder.standard());
+    }
+
+    public SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSAsyncClientBuilder builder) {
+        this(providerConfiguration, builder.build());
+    }
+
+    public SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSAsync amazonSQSAsync) {
+        super(providerConfiguration);
+        this.amazonSQSAsync = amazonSQSAsync;
     }
 
     @Override
-    protected QueueConnection createConnection(AmazonSQSAsync amazonSQS,
-                                               AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
-        AmazonSQSAsyncMessagingClientWrapper clientWrapper = new AmazonSQSAsyncMessagingClientWrapper(amazonSQS, awsCredentialsProvider);
+    protected QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
+        AmazonSQSAsyncMessagingClientWrapper clientWrapper = new AmazonSQSAsyncMessagingClientWrapper(amazonSQSAsync, awsCredentialsProvider);
         return new SQSAsyncConnection(clientWrapper, getProviderConfiguration());
     }
 }

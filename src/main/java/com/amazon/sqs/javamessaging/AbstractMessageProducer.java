@@ -89,13 +89,13 @@ public abstract class AbstractMessageProducer<SQS_CLIENT extends AmazonSQS> impl
     final AtomicBoolean closed = new AtomicBoolean(false);
 
     @Getter(value = AccessLevel.PACKAGE)
-    private final AbstractSQSClientWrapper<SQS_CLIENT> sqsClientWrapper;
+    private final AbstractSQSClientWrapper sqsClientWrapper;
 
     private final AbstractSession<SQS_CLIENT> parentSQSSession;
 
     private final SQSQueueDestination sqsDestination;
 
-    AbstractMessageProducer(AbstractSQSClientWrapper<SQS_CLIENT> sqsClientWrapper,
+    AbstractMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
                             AbstractSession<SQS_CLIENT> parentSQSSession,
                             Destination destination) throws JMSException {
         this.sqsClientWrapper = sqsClientWrapper;

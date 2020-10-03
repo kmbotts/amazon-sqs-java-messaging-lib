@@ -15,7 +15,6 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsSyncClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 
@@ -40,23 +39,25 @@ import javax.jms.QueueConnection;
  * connection to SQS, so validity of credentials are not checked with those
  * methods.
  */
+public class SQSConnectionFactory extends AbstractConnectionFactory {
 
-public class SQSConnectionFactory extends AbstractConnectionFactory<AmazonSQS> {
+    private final AmazonSQS amazonSQS;
 
     public SQSConnectionFactory(ProviderConfiguration providerConfiguration) {
-        super(providerConfiguration, AmazonSQSClientBuilder.standard());
+        this(providerConfiguration, AmazonSQSClientBuilder.standard());
     }
 
-    public SQSConnectionFactory(ProviderConfiguration providerConfiguration, AwsSyncClientBuilder<AmazonSQSClientBuilder, AmazonSQS> builder) {
-        super(providerConfiguration, builder);
+    public SQSConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSClientBuilder builder) {
+        this(providerConfiguration, builder.build());
     }
 
     public SQSConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQS amazonSQS) {
-        super(providerConfiguration, amazonSQS);
+        super(providerConfiguration);
+        this.amazonSQS = amazonSQS;
     }
 
     @Override
-    protected QueueConnection createConnection(AmazonSQS amazonSQS, AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
+    protected QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
         AmazonSQSMessagingClientWrapper clientWrapper = new AmazonSQSMessagingClientWrapper(amazonSQS, awsCredentialsProvider);
         return new SQSConnection(clientWrapper, getProviderConfiguration());
     }

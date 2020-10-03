@@ -40,7 +40,7 @@ import javax.jms.Queue;
 public class SQSAsyncMessageProducer extends AbstractMessageProducer<AmazonSQSAsync> {
     private static final Log LOG = LogFactory.getLog(SQSAsyncMessageProducer.class);
 
-    SQSAsyncMessageProducer(AbstractSQSClientWrapper<AmazonSQSAsync> sqsAsyncMessagingClientWrapper,
+    SQSAsyncMessageProducer(AbstractSQSClientWrapper sqsAsyncMessagingClientWrapper,
                             AbstractSession<AmazonSQSAsync> parentSQSSession,
                             Destination destination) throws JMSException {
         super(sqsAsyncMessagingClientWrapper, parentSQSSession, destination);

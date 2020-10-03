@@ -16,8 +16,6 @@ package com.amazon.sqs.javamessaging;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityRequest;
@@ -65,54 +63,6 @@ public class AmazonSQSMessagingClientWrapperTest {
     @Test(expected = JMSException.class)
     public void testNullSQSClient() throws JMSException {
         new AmazonSQSMessagingClientWrapper(null);
-    }
-
-    /*
-     * Test set endpoint
-     */
-    @Test
-    public void testSetEndpoint() throws JMSException {
-
-        String endpoint = "endpoint";
-        wrapper.setEndpoint(endpoint);
-        verify(amazonSQSClient).setEndpoint(eq(endpoint));
-    }
-
-    /*
-     * Test set endpoint wrap amazon sqs client exception
-     */
-    @Test(expected = JMSException.class)
-    public void testSetEndpointThrowIllegalArgumentException() throws JMSException {
-
-        String endpoint = "endpoint";
-        doThrow(new IllegalArgumentException("iae"))
-                .when(amazonSQSClient).setEndpoint(eq(endpoint));
-
-        wrapper.setEndpoint(endpoint);
-    }
-
-    /*
-     * Test set region
-     */
-    @Test
-    public void testSetRegion() throws JMSException {
-
-        Region region = Region.getRegion(Regions.DEFAULT_REGION);
-        wrapper.setRegion(region);
-        verify(amazonSQSClient).setRegion(eq(region));
-    }
-
-    /*
-     * Test set region wrap amazon sqs client exception
-     */
-    @Test(expected = JMSException.class)
-    public void testSetRegionThrowIllegalArgumentException() throws JMSException {
-
-        Region region = Region.getRegion(Regions.DEFAULT_REGION);
-        doThrow(new IllegalArgumentException("iae"))
-                .when(amazonSQSClient).setRegion(eq(region));
-
-        wrapper.setRegion(region);
     }
 
     /*
@@ -204,7 +154,7 @@ public class AmazonSQSMessagingClientWrapperTest {
         wrapper.getQueueUrl(QUEUE_NAME);
         verify(amazonSQSClient).getQueueUrl(eq(getQueueUrlRequest));
     }
-    
+
     /*
      * Test getQueueUrl with queue name and owner account id input
      */
@@ -213,7 +163,7 @@ public class AmazonSQSMessagingClientWrapperTest {
 
         GetQueueUrlRequest getQueueUrlRequest = new GetQueueUrlRequest(QUEUE_NAME);
         getQueueUrlRequest.setQueueOwnerAWSAccountId(OWNER_ACCOUNT_ID);
-        
+
         wrapper.getQueueUrl(QUEUE_NAME, OWNER_ACCOUNT_ID);
         verify(amazonSQSClient).getQueueUrl(eq(getQueueUrlRequest));
     }
@@ -256,7 +206,7 @@ public class AmazonSQSMessagingClientWrapperTest {
 
         wrapper.getQueueUrl(QUEUE_NAME);
     }
-    
+
     /*
      * Test getQueueUrl with queue name input wrap amazon sqs queue does not exist exception
      */
@@ -268,7 +218,7 @@ public class AmazonSQSMessagingClientWrapperTest {
         doThrow(new QueueDoesNotExistException("qdnee"))
                 .when(amazonSQSClient).getQueueUrl(eq(getQueueUrlRequest));
 
-        wrapper.getQueueUrl(QUEUE_NAME,OWNER_ACCOUNT_ID);
+        wrapper.getQueueUrl(QUEUE_NAME, OWNER_ACCOUNT_ID);
     }
 
     /*

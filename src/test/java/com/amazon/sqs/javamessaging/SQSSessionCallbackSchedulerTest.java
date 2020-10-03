@@ -77,7 +77,7 @@ public class SQSSessionCallbackSchedulerTest {
         sqsClient = mock(AmazonSQSMessagingClientWrapper.class);
 
         sqsConnection = mock(SQSConnection.class);
-        when(sqsConnection.getWrappedAmazonSQSClient())
+        when(sqsConnection.getSqsClientWrapper())
                 .thenReturn(sqsClient);
 
         sqsSession = mock(SQSSession.class);

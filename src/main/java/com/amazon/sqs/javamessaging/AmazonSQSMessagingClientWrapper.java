@@ -17,20 +17,26 @@ package com.amazon.sqs.javamessaging;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQS;
 
-import javax.jms.JMSException;
-
 /**
  * This is a JMS Wrapper of <code>AmazonSQSClient</code>. This class changes all
  * <code>AmazonServiceException</code> and <code>AmazonClientException</code> into
  * JMSException/JMSSecurityException.
  */
-public class AmazonSQSMessagingClientWrapper extends AbstractSQSClientWrapper<AmazonSQS> {
+public class AmazonSQSMessagingClientWrapper extends AbstractSQSClientWrapper {
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS sqsClient) throws JMSException {
-        super(sqsClient);
+    private final AmazonSQS amazonSQS;
+
+    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS) {
+        this(amazonSQS, null);
     }
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS sqsClient, AWSCredentialsProvider credentialsProvider) throws JMSException {
-        super(sqsClient, credentialsProvider);
+    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS, AWSCredentialsProvider credentialsProvider) {
+        super(credentialsProvider);
+        this.amazonSQS = amazonSQS;
+    }
+
+    @Override
+    public AmazonSQS getClient() {
+        return this.amazonSQS;
     }
 }

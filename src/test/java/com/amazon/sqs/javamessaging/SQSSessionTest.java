@@ -92,7 +92,7 @@ public class SQSSessionTest {
         sqsClientJMSWrapper = mock(AmazonSQSMessagingClientWrapper.class);
 
         parentSQSConnection = mock(SQSConnection.class);
-        when(parentSQSConnection.getWrappedAmazonSQSClient())
+        when(parentSQSConnection.getSqsClientWrapper())
                 .thenReturn(sqsClientJMSWrapper);
         when(parentSQSConnection.getSessionThreadFactory()).thenReturn(SESSION_THREAD_FACTORY);
         when(parentSQSConnection.getConsumerPrefetchThreadFactory()).thenReturn(CONSUMER_PREFETCH_THREAD_FACTORY);

@@ -132,7 +132,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      */
     private volatile boolean closing = false;
 
-    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    private final AbstractSQSClientWrapper amazonSQSClient;
 
     private final AbstractConnection<SQS_CLIENT> parentSQSConnection;
 
@@ -200,7 +200,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
                     Set<AbstractMessageConsumer<SQS_CLIENT>> messageConsumers,
                     Set<AbstractMessageProducer<SQS_CLIENT>> messageProducers) throws JMSException {
         this.parentSQSConnection = parentSQSConnection;
-        this.amazonSQSClient = parentSQSConnection.getWrappedAmazonSQSClient();
+        this.amazonSQSClient = parentSQSConnection.getSqsClientWrapper();
         this.acknowledgeMode = acknowledgeMode;
         this.acknowledger = this.acknowledgeMode.createAcknowledger(amazonSQSClient, this);
         this.negativeAcknowledger = new NegativeAcknowledger<>(amazonSQSClient);
@@ -212,7 +212,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         executor.execute(sqsSessionRunnable);
     }
 
-    protected abstract AbstractMessageProducer<SQS_CLIENT> createMessageProducer(AbstractSQSClientWrapper<SQS_CLIENT> sqsClientWrapper,
+    protected abstract AbstractMessageProducer<SQS_CLIENT> createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
                                                                                  AbstractSession<SQS_CLIENT> session,
                                                                                  Destination destination) throws JMSException;
 

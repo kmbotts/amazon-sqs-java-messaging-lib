@@ -89,7 +89,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
         amazonSQSClient = mock(AmazonSQSMessagingClientWrapper.class);
 
         SQSConnection parentSQSConnection = mock(SQSConnection.class);
-        when(parentSQSConnection.getWrappedAmazonSQSClient()).thenReturn(amazonSQSClient);
+        when(parentSQSConnection.getSqsClientWrapper()).thenReturn(amazonSQSClient);
 
         sqsSessionRunnable = mock(SQSSessionCallbackScheduler.class);
 

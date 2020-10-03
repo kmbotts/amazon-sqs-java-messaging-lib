@@ -83,7 +83,7 @@ public abstract class AbstractMessageConsumer<SQS_CLIENT extends AmazonSQS> impl
                 sqsSessionRunnable, destination,
                 acknowledger, negativeAcknowledger, threadFactory,
                 new SQSMessageConsumerPrefetch<>(sqsSessionRunnable, acknowledger, negativeAcknowledger, destination,
-                        parentSQSConnection.getWrappedAmazonSQSClient(),
+                        parentSQSConnection.getSqsClientWrapper(),
                         parentSQSConnection.getNumberOfMessagesToPrefetch()));
 
     }

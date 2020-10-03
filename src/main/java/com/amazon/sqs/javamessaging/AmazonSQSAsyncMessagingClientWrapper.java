@@ -27,14 +27,22 @@ import javax.jms.JMSException;
  * <code>AmazonServiceException</code> and <code>AmazonClientException</code> into
  * JMSException/JMSSecurityException.
  */
-public class AmazonSQSAsyncMessagingClientWrapper extends AbstractSQSClientWrapper<AmazonSQSAsync> {
+public class AmazonSQSAsyncMessagingClientWrapper extends AbstractSQSClientWrapper {
 
-    protected AmazonSQSAsyncMessagingClientWrapper(AmazonSQSAsync sqsClient) throws JMSException {
-        super(sqsClient);
+    private final AmazonSQSAsync amazonSQSAsync;
+
+    protected AmazonSQSAsyncMessagingClientWrapper(AmazonSQSAsync amazonSQSAsync) {
+        this(amazonSQSAsync, null);
     }
 
-    protected AmazonSQSAsyncMessagingClientWrapper(AmazonSQSAsync sqsClient, AWSCredentialsProvider credentialsProvider) throws JMSException {
-        super(sqsClient, credentialsProvider);
+    protected AmazonSQSAsyncMessagingClientWrapper(AmazonSQSAsync amazonSQSAsync, AWSCredentialsProvider credentialsProvider) {
+        super(credentialsProvider);
+        this.amazonSQSAsync = amazonSQSAsync;
+    }
+
+    @Override
+    public AmazonSQSAsync getClient() {
+        return this.amazonSQSAsync;
     }
 
     public void sendMessageAsync(SendMessageRequest request, SendMessageAsyncHandler asyncHandler) throws JMSException {

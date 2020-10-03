@@ -64,7 +64,7 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
 
     protected static final String ALL = "All";
 
-    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    private final AbstractSQSClientWrapper amazonSQSClient;
 
     private final String queueUrl;
 
@@ -129,7 +129,7 @@ public class SQSMessageConsumerPrefetch<SQS_CLIENT extends AmazonSQS> implements
                                Acknowledger acknowledger,
                                NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger,
                                SQSQueueDestination sqsDestination,
-                               AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient,
+                               AbstractSQSClientWrapper amazonSQSClient,
                                int numberOfMessagesToPrefetch) {
 
         this.amazonSQSClient = amazonSQSClient;

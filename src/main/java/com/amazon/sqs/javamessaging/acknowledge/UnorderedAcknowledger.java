@@ -34,7 +34,7 @@ import java.util.Map;
  */
 public class UnorderedAcknowledger<SQS_CLIENT extends AmazonSQS> implements Acknowledger {
 
-    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    private final AbstractSQSClientWrapper amazonSQSClient;
 
     private final AbstractSession<SQS_CLIENT> session;
 
@@ -42,7 +42,7 @@ public class UnorderedAcknowledger<SQS_CLIENT extends AmazonSQS> implements Ackn
     // identifier
     private final Map<String, SQSMessageIdentifier> unAckMessages;
 
-    public UnorderedAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
+    public UnorderedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
         this.unAckMessages = new HashMap<>();

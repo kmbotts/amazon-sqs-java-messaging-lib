@@ -62,7 +62,7 @@ public class SQSSession extends AbstractSession<AmazonSQS> {
     }
 
     @Override
-    protected AbstractMessageProducer<AmazonSQS> createMessageProducer(AbstractSQSClientWrapper<AmazonSQS> sqsClientWrapper, AbstractSession<AmazonSQS> session, Destination destination) throws JMSException {
+    protected AbstractMessageProducer<AmazonSQS> createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession<AmazonSQS> session, Destination destination) throws JMSException {
         return new SQSMessageProducer(sqsClientWrapper, session, destination);
     }
 

@@ -19,9 +19,6 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsSyncClientBuilder;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import lombok.AccessLevel;
 import lombok.Getter;
 
@@ -31,8 +28,6 @@ import javax.jms.JMSException;
 import javax.jms.JMSRuntimeException;
 import javax.jms.QueueConnection;
 import javax.jms.QueueConnectionFactory;
-
-import java.util.function.Supplier;
 
 /**
  * A ConnectionFactory object encapsulates a set of connection configuration
@@ -53,40 +48,24 @@ import java.util.function.Supplier;
  * methods.
  */
 
-public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> implements QueueConnectionFactory {
+public abstract class AbstractConnectionFactory implements QueueConnectionFactory {
     @Getter(value = AccessLevel.PROTECTED)
     private final ProviderConfiguration providerConfiguration;
-    private final Supplier<SQS_CLIENT> sqsClientSupplier;
 
-    protected AbstractConnectionFactory(ProviderConfiguration providerConfiguration,
-                                        AwsSyncClientBuilder<AmazonSQSClientBuilder, SQS_CLIENT> builder) {
-        this(providerConfiguration, builder.build());
-    }
-
-    /*
-     * Creates a SQSConnectionFactory that uses the provided AmazonSQS client connection.
-     * Every SQSConnection will use the same provided AmazonSQS client.
-     */
-    protected AbstractConnectionFactory(ProviderConfiguration providerConfiguration, final SQS_CLIENT client) {
+    protected AbstractConnectionFactory(ProviderConfiguration providerConfiguration) {
         if (providerConfiguration == null) {
             throw new IllegalArgumentException("Provider configuration cannot be null");
         }
-        if (client == null) {
-            throw new IllegalArgumentException("AmazonSQS client cannot be null");
-        }
         this.providerConfiguration = providerConfiguration;
-        this.sqsClientSupplier = () -> client;
     }
 
-    protected abstract QueueConnection createConnection(SQS_CLIENT amazonSQS,
-                                                        AWSCredentialsProvider awsCredentialsProvider) throws JMSException;
+    protected abstract QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException;
 
     //region QueueConnectionFactory Methods
     @Override
     public QueueConnection createQueueConnection() throws JMSException {
         try {
-            SQS_CLIENT amazonSQS = sqsClientSupplier.get();
-            return createConnection(amazonSQS, null);
+            return createConnection(null);
         } catch (RuntimeException e) {
             throw (JMSException) new JMSException("Error creating SQS client: " + e.getMessage()).initCause(e);
         }
@@ -99,8 +78,7 @@ public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> im
         AWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKeyId, awsSecretKey);
         AWSCredentialsProvider awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
         try {
-            SQS_CLIENT amazonSQS = sqsClientSupplier.get();
-            return createConnection(amazonSQS, awsCredentialsProvider);
+            return createConnection(awsCredentialsProvider);
         } catch (Exception e) {
             throw (JMSException) new JMSException("Error creating SQS client: " + e.getMessage()).initCause(e);
         }
@@ -119,6 +97,7 @@ public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> im
     }
 
     //region Unsupported Methods
+
     /**
      * This method is not supported.
      */

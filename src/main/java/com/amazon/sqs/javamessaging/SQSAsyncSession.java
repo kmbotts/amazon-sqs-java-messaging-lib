@@ -60,7 +60,7 @@ public class SQSAsyncSession extends AbstractSession<AmazonSQSAsync> {
     }
 
     @Override
-    protected AbstractMessageProducer<AmazonSQSAsync> createMessageProducer(AbstractSQSClientWrapper<AmazonSQSAsync> sqsClientWrapper, AbstractSession<AmazonSQSAsync> session, Destination destination) throws JMSException {
+    protected AbstractMessageProducer<AmazonSQSAsync> createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession<AmazonSQSAsync> session, Destination destination) throws JMSException {
         return new SQSAsyncMessageProducer(sqsClientWrapper, session, destination);
     }
 

@@ -43,13 +43,13 @@ import java.util.Queue;
 public class RangedAcknowledger<SQS_CLIENT extends AmazonSQS> extends BulkSQSOperation implements Acknowledger {
     private static final Log LOG = LogFactory.getLog(RangedAcknowledger.class);
 
-    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    private final AbstractSQSClientWrapper amazonSQSClient;
 
     private final AbstractSession<SQS_CLIENT> session;
 
     private final Queue<SQSMessageIdentifier> unAckMessages;
 
-    public RangedAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
+    public RangedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
         this.unAckMessages = new LinkedList<>();

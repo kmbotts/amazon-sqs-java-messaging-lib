@@ -41,9 +41,9 @@ public class NegativeAcknowledger<SQS_CLIENT extends AmazonSQS> extends BulkSQSO
 
     private static final int NACK_TIMEOUT = 0;
 
-    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    private final AbstractSQSClientWrapper amazonSQSClient;
 
-    public NegativeAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient) {
+    public NegativeAcknowledger(AbstractSQSClientWrapper amazonSQSClient) {
         this.amazonSQSClient = amazonSQSClient;
     }
 

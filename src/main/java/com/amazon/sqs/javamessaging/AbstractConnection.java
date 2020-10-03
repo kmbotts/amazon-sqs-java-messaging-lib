@@ -17,6 +17,8 @@ package com.amazon.sqs.javamessaging;
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
 import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
 import com.amazonaws.services.sqs.AmazonSQS;
+import lombok.AccessLevel;
+import lombok.Getter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -91,10 +93,13 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
      */
     private final Object stateLock = new Object();
 
-    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    @Getter(value = AccessLevel.PACKAGE)
+    private final AbstractSQSClientWrapper sqsClientWrapper;
 
+    @Getter(value = AccessLevel.PACKAGE)
     private final MessagingClientThreadFactory sessionThreadFactory;
 
+    @Getter(value = AccessLevel.PACKAGE)
     private final MessagingClientThreadFactory consumerPrefetchThreadFactory;
 
     /**
@@ -102,6 +107,7 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
      * single consumer cannot prefetch more than 10 messages in a single call to SQS,
      * but it will make multiple calls as necessary.
      */
+    @Getter(value = AccessLevel.PACKAGE)
     private final int numberOfMessagesToPrefetch;
 
     private volatile boolean closed = false;
@@ -121,14 +127,14 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
 
     private final Set<Session> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    protected AbstractConnection(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClientJMSWrapper,
+    protected AbstractConnection(AbstractSQSClientWrapper amazonSQSClientJMSWrapper,
                                  int numberOfMessagesToPrefetch) {
         this(amazonSQSClientJMSWrapper, new ProviderConfiguration().withNumberOfMessagesToPrefetch(numberOfMessagesToPrefetch));
     }
 
-    protected AbstractConnection(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClientJMSWrapper,
+    protected AbstractConnection(AbstractSQSClientWrapper amazonSQSClientJMSWrapper,
                                  ProviderConfiguration providerConfiguration) {
-        amazonSQSClient = amazonSQSClientJMSWrapper;
+        sqsClientWrapper = amazonSQSClientJMSWrapper;
         this.numberOfMessagesToPrefetch = providerConfiguration.getNumberOfMessagesToPrefetch();
         this.sessionThreadFactory = providerConfiguration.getSessionThreadFactory();
         this.consumerPrefetchThreadFactory = providerConfiguration.getConsumerPrefetchThreadFactory();
@@ -452,6 +458,7 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
     }
 
     //region Unsupported Methods
+
     /**
      * This method is not supported.
      */
@@ -500,32 +507,6 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
     //region Internal Methods
 
     /**
-     * Get the AmazonSQSClient used by this connection. This can be used to do administrative operations
-     * that aren't included in the JMS specification, e.g. creating new queues.
-     *
-     * @return the AmazonSQSClient used by this connection
-     */
-    SQS_CLIENT getAmazonSQSClient() {
-        return amazonSQSClient.getClient();
-    }
-
-    /**
-     * Get a wrapped version of the AmazonSQSClient used by this connection. The wrapper transforms
-     * all exceptions from the client into JMSExceptions so that it can more easily be used
-     * by existing code that already expects JMSExceptions. This client can be used to do
-     * administrative operations that aren't included in the JMS specification, e.g. creating new queues.
-     *
-     * @return wrapped version of the AmazonSQSClient used by this connection
-     */
-    AbstractSQSClientWrapper<SQS_CLIENT> getWrappedAmazonSQSClient() {
-        return amazonSQSClient;
-    }
-
-    int getNumberOfMessagesToPrefetch() {
-        return numberOfMessagesToPrefetch;
-    }
-
-    /**
      * Checks if the connection close is in-progress or already completed.
      *
      * @throws IllegalStateException If the connection close is in-progress or already completed.
@@ -558,14 +539,6 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
           about missing closing this session.
          */
         sessions.remove(session);
-    }
-
-    MessagingClientThreadFactory getSessionThreadFactory() {
-        return sessionThreadFactory;
-    }
-
-    MessagingClientThreadFactory getConsumerPrefetchThreadFactory() {
-        return consumerPrefetchThreadFactory;
     }
     //endregion
 

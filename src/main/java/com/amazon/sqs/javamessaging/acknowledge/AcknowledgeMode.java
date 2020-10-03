@@ -62,7 +62,7 @@ public enum AcknowledgeMode {
      * @param parentSQSSession the associated session for the acknowledger
      * @throws JMSException If invalid acknowledge mode is used.
      */
-    public <SQS_CLIENT extends AmazonSQS> Acknowledger createAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> parentSQSSession) throws JMSException {
+    public <SQS_CLIENT extends AmazonSQS> Acknowledger createAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession<SQS_CLIENT> parentSQSSession) throws JMSException {
         switch (this) {
             case ACK_AUTO:
                 return new AutoAcknowledger<>(amazonSQSClient, parentSQSSession);

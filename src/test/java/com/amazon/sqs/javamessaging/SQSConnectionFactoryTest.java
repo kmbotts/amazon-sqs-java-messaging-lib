@@ -50,9 +50,9 @@ public class SQSConnectionFactoryTest {
         SQSConnection connection1 = (SQSConnection) factory.createConnection();
         SQSConnection connection2 = (SQSConnection) factory.createConnection();
 
-        assertSame(client, connection1.getAmazonSQSClient());
-        assertSame(client, connection2.getAmazonSQSClient());
-        assertSame(connection1.getAmazonSQSClient(), connection2.getAmazonSQSClient());
+        assertSame(client, connection1.getSqsClientWrapper().getClient());
+        assertSame(client, connection2.getSqsClientWrapper().getClient());
+        assertSame(connection1.getSqsClientWrapper().getClient(), connection2.getSqsClientWrapper().getClient());
 
         connection1.close();
         connection2.close();
@@ -73,7 +73,7 @@ public class SQSConnectionFactoryTest {
         SQSConnection connection1 = (SQSConnection) factory.createConnection();
         SQSConnection connection2 = (SQSConnection) factory.createConnection();
 
-        assertNotSame(connection1.getAmazonSQSClient(), connection2.getAmazonSQSClient());
+        assertNotSame(connection1.getSqsClientWrapper().getClient(), connection2.getSqsClientWrapper().getClient());
 
         connection1.close();
         connection2.close();

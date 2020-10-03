@@ -33,10 +33,10 @@ import java.util.List;
  */
 public class AutoAcknowledger<SQS_CLIENT extends AmazonSQS> implements Acknowledger {
 
-    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    private final AbstractSQSClientWrapper amazonSQSClient;
     private final AbstractSession<SQS_CLIENT> session;
 
-    public AutoAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
+    public AutoAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
     }
