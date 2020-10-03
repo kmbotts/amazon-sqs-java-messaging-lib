@@ -14,6 +14,17 @@
  */
 package com.amazon.sqs.javamessaging.message;
 
+import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.util.Base64;
+import com.amazonaws.util.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import javax.jms.JMSException;
+import javax.jms.MessageFormatException;
+import javax.jms.ObjectMessage;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -21,24 +32,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-import javax.jms.JMSException;
-import javax.jms.ObjectMessage;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
-import com.amazonaws.util.Base64;
-
-import com.amazonaws.services.sqs.model.Message;
-
 /**
  * An ObjectMessage object is used to send a message that contains a Java
  * serializable object.
- * <P>
+ * <p>
  * It inherits from the Message interface and adds a body containing a single
  * reference to an object. Only Serializable Java objects can be used.
- * <P>
+ * <p>
  * When a client receives an ObjectMessage, it is in read-only mode. If a client
  * attempts to write to the message at this point, a
  * MessageNotWriteableException is thrown. If clearBody is called, the message
@@ -59,7 +59,7 @@ public class SQSObjectMessage extends SQSMessage implements ObjectMessage {
         super(acknowledger, queueUrl, sqsMessage);
         body = sqsMessage.getBody();
     }
-    
+
     /**
      * Create new empty ObjectMessage to send.
      */
@@ -74,34 +74,30 @@ public class SQSObjectMessage extends SQSMessage implements ObjectMessage {
         super();
         body = serialize(payload);
     }
-    
+
     /**
      * Sets the <code>Serializable</code> containing this message's body
-     * 
-     * @param payload
-     *            The <code>Serializable</code> containing the message's body
-     * @throws MessageNotWriteableException
-     *             If the message is in read-only mode.
-     * @throws MessageFormatException
-     *             If object serialization fails.
+     *
+     * @param payload The <code>Serializable</code> containing the message's body
+     * @throws javax.jms.MessageNotWriteableException If the message is in read-only mode.
+     * @throws MessageFormatException                 If object serialization fails.
      */
     @Override
     public void setObject(Serializable payload) throws JMSException {
         checkBodyWritePermissions();
         body = serialize(payload);
     }
-    
+
     /**
      * Gets the <code>Serializable</code> containing this message's body
-     * 
-     * @throws MessageFormatException
-     *             If object deserialization fails.
+     *
+     * @throws MessageFormatException If object deserialization fails.
      */
     @Override
     public Serializable getObject() throws JMSException {
         return deserialize(body);
     }
-    
+
     /**
      * Sets the message body to write mode, and sets the object body to null
      */
@@ -110,7 +106,7 @@ public class SQSObjectMessage extends SQSMessage implements ObjectMessage {
         body = null;
         setBodyWritePermissions(true);
     }
-    
+
     /**
      * Deserialize the <code>String</code> into <code>Serializable</code>
      * object.
@@ -142,7 +138,7 @@ public class SQSObjectMessage extends SQSMessage implements ObjectMessage {
         }
         return deserializedObject;
     }
-    
+
     /**
      * Serialize the <code>Serializable</code> object to <code>String</code>.
      */
@@ -172,12 +168,39 @@ public class SQSObjectMessage extends SQSMessage implements ObjectMessage {
         }
         return serializedString;
     }
-    
+
     public String getMessageBody() {
         return body;
     }
 
     void setMessageBody(String body) {
         this.body = body;
+    }
+
+    @Override
+    protected boolean isEmpty() {
+        return StringUtils.isNullOrEmpty(body);
+    }
+
+    @Override
+    public <T> T getBody(Class<T> c) throws JMSException {
+        try {
+            if (isBodyAssignableTo(c)) {
+                Object obj = getObject();
+                return obj == null ? null : c.cast(obj);
+            }
+            throw new MessageFormatException("Message is not assignable to class: " + c.getName());
+
+        } catch (JMSException e) {
+            throw new MessageFormatException("Object deserialization failed", e.getErrorCode());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public boolean isBodyAssignableTo(Class c) throws JMSException {
+        return isEmpty()
+                || c.isAssignableFrom(getObject().getClass())
+                || c.isAssignableFrom(Serializable.class);
     }
 }

@@ -14,51 +14,49 @@
  */
 package com.amazon.sqs.javamessaging.acknowledge;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.jms.JMSException;
-
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
+import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
 import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch.MessageManager;
+import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
 
+import javax.jms.JMSException;
+
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+
 /**
  * Used to negative acknowledge of group of messages.
- * <P>
+ * <p>
  * Negative acknowledge resets the visibility timeout of a message, so that the
  * message can be immediately available to consume. This is mostly used on
  * <code>recover</code> and <code>close</code> methods.
- * <P>
+ * <p>
  * Negative acknowledge can potentially cause duplicate deliveries.
  */
-public class NegativeAcknowledger extends BulkSQSOperation {
+public class NegativeAcknowledger<SQS_CLIENT extends AmazonSQS> extends BulkSQSOperation {
 
     private static final int NACK_TIMEOUT = 0;
 
-    private final AmazonSQSMessagingClientWrapper amazonSQSClient;
+    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
 
-    public NegativeAcknowledger(AmazonSQSMessagingClientWrapper amazonSQSClient) {
+    public NegativeAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient) {
         this.amazonSQSClient = amazonSQSClient;
     }
-    
+
     /**
      * Bulk action for negative acknowledge on the list of messages of a
      * specific queue.
-     * 
-     * @param messageQueue
-     *            Container for the list of message managers.
-     * @param queueUrl
-     *            The queueUrl of the messages, which they received from.
-     * @throws JMSException
-     *             If <code>action</code> throws.
+     *
+     * @param messageQueue Container for the list of message managers.
+     * @param queueUrl     The queueUrl of the messages, which they received from.
+     * @throws JMSException If <code>action</code> throws.
      */
-    public void bulkAction(ArrayDeque<MessageManager> messageQueue, String queueUrl) throws JMSException {
-        List<String> receiptHandles = new ArrayList<String>();
+    public void bulkAction(Deque<MessageManager> messageQueue, String queueUrl) throws JMSException {
+        List<String> receiptHandles = new ArrayList<>();
         while (!messageQueue.isEmpty()) {
             receiptHandles.add(((SQSMessage) (messageQueue.pollFirst().getMessage())).getReceiptHandle());
 
@@ -70,20 +68,17 @@ public class NegativeAcknowledger extends BulkSQSOperation {
         }
         action(queueUrl, receiptHandles);
     }
-    
+
     /**
      * Action call block for negative acknowledge for the list of receipt
      * handles. This action can be applied on multiple messages for the same
      * queue.
-     * 
-     * @param queueUrl
-     *            The queueUrl of the queue, which the receipt handles belong.
-     * @param receiptHandles
-     *            The list of handles, which is be used to negative acknowledge
-     *            the messages via using
-     *            <code>changeMessageVisibilityBatch</code>.
-     * @throws JMSException
-     *             If <code>changeMessageVisibilityBatch</code> throws.
+     *
+     * @param queueUrl       The queueUrl of the queue, which the receipt handles belong.
+     * @param receiptHandles The list of handles, which is be used to negative acknowledge
+     *                       the messages via using
+     *                       <code>changeMessageVisibilityBatch</code>.
+     * @throws JMSException If <code>changeMessageVisibilityBatch</code> throws.
      */
     @Override
     public void action(String queueUrl, List<String> receiptHandles) throws JMSException {
@@ -92,7 +87,7 @@ public class NegativeAcknowledger extends BulkSQSOperation {
             return;
         }
 
-        List<ChangeMessageVisibilityBatchRequestEntry> nackEntries = new ArrayList<ChangeMessageVisibilityBatchRequestEntry>(
+        List<ChangeMessageVisibilityBatchRequestEntry> nackEntries = new ArrayList<>(
                 receiptHandles.size());
         int batchId = 0;
         for (String messageReceiptHandle : receiptHandles) {

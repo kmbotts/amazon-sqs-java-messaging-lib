@@ -15,28 +15,26 @@
 package com.amazon.sqs.javamessaging;
 
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSConnection;
-import com.amazon.sqs.javamessaging.SQSMessageProducer;
-import com.amazon.sqs.javamessaging.SQSQueueDestination;
-import com.amazon.sqs.javamessaging.SQSSession;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.message.SQSBytesMessage;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
-import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.amazonaws.util.Base64;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 
+import javax.jms.Destination;
+import javax.jms.IllegalStateException;
 import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
-import javax.jms.IllegalStateException;
 import javax.jms.Message;
 import javax.jms.Queue;
-import javax.jms.Destination;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -47,11 +45,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -277,7 +270,7 @@ public class SQSMessageProducerTest {
         Message msg = mock(Message.class);
 
         try {
-            producer.sendInternal(destination, msg);
+            producer.sendMessageInternal(destination, msg, null);
             fail();
         } catch (JMSException jmse) {
             // expected
@@ -285,7 +278,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input of Non SQS message
+     * Test sendMessageSync input of Non SQS message
      */
     @Test
     public void testSendInternalAlreadyClosed() throws JMSException {
@@ -294,7 +287,7 @@ public class SQSMessageProducerTest {
         SQSMessage msg = mock(SQSMessage.class);
 
         try {
-            producer.sendInternal(destination, msg);
+            producer.sendMessageInternal(destination, msg, null);
             fail();
         } catch (JMSException jmse) {
             // expected
@@ -302,7 +295,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input that SQSMessage is not a valid input
+     * Test sendMessageSync input that SQSMessage is not a valid input
      */
     @Test
     public void testSendInternalNoMessageBody() throws JMSException {
@@ -310,7 +303,7 @@ public class SQSMessageProducerTest {
         SQSMessage msg = mock(SQSMessage.class);
 
         try {
-            producer.sendInternal(destination, msg);
+            producer.sendMessageInternal(destination, msg, null);
             fail();
         } catch (JMSException jmse) {
             //expected
@@ -320,7 +313,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input with SQSTextMessage
+     * Test sendMessageSync input with SQSTextMessage
      */
     @Test
     public void testSendInternalSQSTextMessage() throws JMSException {
@@ -335,13 +328,13 @@ public class SQSMessageProducerTest {
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_1))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         /*
          * Re send the message
          */
         msg.setText(messageBody2);
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         List<String> messagesBody = Arrays.asList(messageBody1, messageBody2);
         verify(amazonSQSClient, times(2)).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messagesBody, messageAttributes)));
@@ -353,7 +346,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input with SQSTextMessage
+     * Test sendMessageSync input with SQSTextMessage
      */
     @Test
     public void testSendInternalSQSTextMessageFromReceivedMessage() throws JMSException {
@@ -381,7 +374,7 @@ public class SQSMessageProducerTest {
         when(amazonSQSClient.sendMessage(any(SendMessageRequest.class)))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_1));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         List<String> messagesBody = Arrays.asList("MessageBody");
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messagesBody, mapMessageAttributes)));
@@ -391,7 +384,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input with SQSObjectMessage
+     * Test sendMessageSync input with SQSObjectMessage
      */
     @Test
     public void testSendInternalSQSObjectMessage() throws JMSException {
@@ -410,7 +403,7 @@ public class SQSMessageProducerTest {
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_1))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         /*
          * Re send the message
@@ -418,7 +411,7 @@ public class SQSMessageProducerTest {
         msg.clearBody();
         msg.setObject(set2);
         String megBody2 = msg.getMessageBody();
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
         
         ArgumentCaptor<SendMessageRequest> argumentCaptor = ArgumentCaptor.forClass(SendMessageRequest.class);
         verify(amazonSQSClient, times(2)).sendMessage(argumentCaptor.capture());
@@ -433,7 +426,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input with SQSObjectMessage
+     * Test sendMessageSync input with SQSObjectMessage
      */
     @Test
     public void testSendInternalSQSObjectMessageFromReceivedMessage() throws JMSException, IOException {
@@ -473,7 +466,7 @@ public class SQSMessageProducerTest {
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_1))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, Arrays.asList(messageBody),
                 messageAttributes)));
@@ -483,7 +476,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input with SQSByteMessage
+     * Test sendMessageSync input with SQSByteMessage
      */
     @Test
     public void testSendInternalSQSByteMessage() throws JMSException {
@@ -499,14 +492,14 @@ public class SQSMessageProducerTest {
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_1))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         /*
          * Re send the message
          */
         msg.clearBody();
         msg.writeInt(42);
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         List<String> messagesBody = Arrays.asList("AA==", "AAAAKg==");
         verify(amazonSQSClient, times(2)).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messagesBody,
@@ -520,7 +513,7 @@ public class SQSMessageProducerTest {
     }
 
     /**
-     * Test sendInternal input with SQSByteMessage
+     * Test sendMessageSync input with SQSByteMessage
      */
     @Test
     public void testSendInternalSQSByteMessageFromReceivedMessage() throws JMSException, IOException {
@@ -553,7 +546,7 @@ public class SQSMessageProducerTest {
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_1))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, Arrays.asList(messageBody),
                 messageAttributes)));
@@ -631,12 +624,12 @@ public class SQSMessageProducerTest {
         producer = spy(new SQSMessageProducer(amazonSQSClient, sqsSession, null));
 
         doNothing()
-                .when(producer).sendInternal(destination, msg);
+                .when(producer).sendMessageInternal(destination, msg, null);
 
         producer.send(destination, msg);
 
         verify(producer).checkIfDestinationAlreadySet();
-        verify(producer).sendInternal(destination, msg);
+        verify(producer).sendMessageInternal(destination, msg, null);
     }
 
     /**
@@ -671,10 +664,10 @@ public class SQSMessageProducerTest {
         SQSTextMessage msg = spy(new SQSTextMessage("MyText"));
 
         doNothing()
-                .when(producer).sendInternal(destination, msg);
+                .when(producer).sendMessageInternal(destination, msg, null);
 
         producer.send(msg);
-        verify(producer).sendInternal(destination, msg);
+        verify(producer).sendMessageInternal(destination, msg, null);
     }
 
     /**

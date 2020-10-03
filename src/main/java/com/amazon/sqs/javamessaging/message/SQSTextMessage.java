@@ -14,17 +14,19 @@
  */
 package com.amazon.sqs.javamessaging.message;
 
-import javax.jms.JMSException;
-import javax.jms.TextMessage;
-
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.util.StringUtils;
+
+import javax.jms.JMSException;
+import javax.jms.MessageFormatException;
+import javax.jms.TextMessage;
 
 /**
  * A TextMessage object is used to send a message body containing a
  * java.lang.String. It inherits from the Message interface and adds a text
  * message body. SQS does not accept empty or null message body
- * <P>
+ * <p>
  * When a client receives a TextMessage, it is in read-only mode. If a client
  * attempts to write to the message at this point, a
  * MessageNotWriteableException is thrown. If clearBody is called, the message
@@ -40,11 +42,11 @@ public class SQSTextMessage extends SQSMessage implements TextMessage {
     /**
      * Convert received SQSMessage into TextMessage.
      */
-    public SQSTextMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException{
+    public SQSTextMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
         super(acknowledger, queueUrl, sqsMessage);
         this.text = sqsMessage.getBody();
     }
-    
+
     /**
      * Create new empty TextMessage to send.
      */
@@ -59,31 +61,29 @@ public class SQSTextMessage extends SQSMessage implements TextMessage {
         super();
         this.text = payload;
     }
-     
+
     /**
      * Sets the text containing this message's body.
-     * 
-     * @param string
-     *            The <code>String</code> containing the message's body
-     * @throws MessageNotWriteableException
-     *             If the message is in read-only mode.
+     *
+     * @param string The <code>String</code> containing the message's body
+     * @throws MessageNotWriteableException If the message is in read-only mode.
      */
     @Override
     public void setText(String string) throws JMSException {
         checkBodyWritePermissions();
         this.text = string;
     }
-    
+
     /**
      * Gets the text containing this message's body.
-     * 
+     *
      * @return The <code>String</code> containing the message's body
      */
     @Override
     public String getText() throws JMSException {
         return text;
     }
-    
+
     /**
      * Sets the message body to write mode, and sets the text to null
      */
@@ -91,5 +91,24 @@ public class SQSTextMessage extends SQSMessage implements TextMessage {
     public void clearBody() throws JMSException {
         text = null;
         setBodyWritePermissions(true);
+    }
+
+    @Override
+    protected boolean isEmpty() {
+        return StringUtils.isNullOrEmpty(text);
+    }
+
+    @Override
+    public <T> T getBody(Class<T> c) throws JMSException {
+        if (isBodyAssignableTo(c))
+            return isEmpty() ? null : c.cast(getText());
+
+        throw new MessageFormatException("Message is not assignable to class: " + c.getName());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public boolean isBodyAssignableTo(Class c) throws JMSException {
+        return isEmpty() || c.isAssignableFrom(String.class);
     }
 }

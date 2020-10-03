@@ -14,7 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Region;
@@ -29,11 +28,11 @@ import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import org.junit.Before;
+import org.junit.Test;
 
 import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
-import org.junit.Before;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -548,6 +547,6 @@ public class AmazonSQSMessagingClientWrapperTest {
      */
     @Test
     public void testGetAmazonSQSClient() {
-        assertEquals(amazonSQSClient, wrapper.getAmazonSQSClient());
+        assertEquals(amazonSQSClient, wrapper.getClient());
     }
 }

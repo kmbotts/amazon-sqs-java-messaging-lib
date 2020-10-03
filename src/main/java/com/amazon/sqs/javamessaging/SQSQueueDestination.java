@@ -16,7 +16,6 @@ package com.amazon.sqs.javamessaging;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
-
 import javax.jms.Queue;
 
 /**

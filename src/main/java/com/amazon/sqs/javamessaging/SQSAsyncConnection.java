@@ -15,7 +15,7 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSAsync;
 
 import javax.jms.JMSException;
 
@@ -54,18 +54,18 @@ import javax.jms.JMSException;
  * <p>
  * Exception listener on connection is not supported.
  */
-public class SQSConnection extends AbstractConnection<AmazonSQS> {
+public class SQSAsyncConnection extends AbstractConnection<AmazonSQSAsync> {
 
-    SQSConnection(AmazonSQSMessagingClientWrapper amazonSQSClientJMSWrapper, int numberOfMessagesToPrefetch) {
+    SQSAsyncConnection(AmazonSQSAsyncMessagingClientWrapper amazonSQSClientJMSWrapper, int numberOfMessagesToPrefetch) {
         super(amazonSQSClientJMSWrapper, numberOfMessagesToPrefetch);
     }
 
-    SQSConnection(AmazonSQSMessagingClientWrapper amazonSQSClientJMSWrapper, ProviderConfiguration providerConfiguration) {
+    SQSAsyncConnection(AmazonSQSAsyncMessagingClientWrapper amazonSQSClientJMSWrapper, ProviderConfiguration providerConfiguration) {
         super(amazonSQSClientJMSWrapper, providerConfiguration);
     }
 
     @Override
-    protected AbstractSession<AmazonSQS> createSession(AbstractConnection<AmazonSQS> connection, AcknowledgeMode acknowledgeMode) throws JMSException {
-        return new SQSSession(connection, acknowledgeMode);
+    protected AbstractSession<AmazonSQSAsync> createSession(AbstractConnection<AmazonSQSAsync> connection, AcknowledgeMode acknowledgeMode) throws JMSException {
+        return new SQSAsyncSession(connection, acknowledgeMode);
     }
 }

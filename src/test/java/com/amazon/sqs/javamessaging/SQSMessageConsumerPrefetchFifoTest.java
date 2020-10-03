@@ -14,11 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSConnection;
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch;
-import com.amazon.sqs.javamessaging.SQSQueueDestination;
-import com.amazon.sqs.javamessaging.SQSSessionCallbackScheduler;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import com.amazon.sqs.javamessaging.message.SQSBytesMessage;
@@ -26,10 +21,20 @@ import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
 import com.amazon.sqs.javamessaging.util.ExponentialBackoffStrategy;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.Base64;
-import com.amazonaws.services.sqs.model.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.mockito.ArgumentMatcher;
 
-import javax.jms.*;
+import javax.jms.JMSException;
+import javax.jms.ObjectMessage;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -39,13 +44,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
-import org.mockito.ArgumentMatcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -64,21 +62,21 @@ public class SQSMessageConsumerPrefetchFifoTest {
 
     private static final String NAMESPACE = "123456789012";
     private static final String QUEUE_NAME = "QueueName.fifo";
-    private static final  String QUEUE_URL = NAMESPACE + "/" + QUEUE_NAME;
+    private static final String QUEUE_URL = NAMESPACE + "/" + QUEUE_NAME;
 
     private Acknowledger acknowledger;
-    private NegativeAcknowledger negativeAcknowledger;
-    private SQSSessionCallbackScheduler sqsSessionRunnable;
-    private SQSMessageConsumerPrefetch consumerPrefetch;
+    private NegativeAcknowledger<AmazonSQS> negativeAcknowledger;
+    private SQSSessionCallbackScheduler<AmazonSQS> sqsSessionRunnable;
+    private SQSMessageConsumerPrefetch<AmazonSQS> consumerPrefetch;
     private ExponentialBackoffStrategy backoffStrategy;
 
     private AmazonSQSMessagingClientWrapper amazonSQSClient;
 
     @Parameters
     public static List<Object[]> getParameters() {
-        return Arrays.asList(new Object[][] { {0}, {1}, {5}, {10}, {15} });
+        return Arrays.asList(new Object[][]{{0}, {1}, {5}, {10}, {15}});
     }
-   
+
     private final int numberOfMessagesToPrefetch;
     
     public SQSMessageConsumerPrefetchFifoTest(int numberOfMessagesToPrefetch) {

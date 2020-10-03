@@ -14,9 +14,10 @@
  */
 package com.amazon.sqs.javamessaging.acknowledge;
 
-import javax.jms.JMSException;
-
 import com.amazon.sqs.javamessaging.message.SQSMessage;
+import com.amazonaws.util.StringUtils;
+
+import javax.jms.JMSException;
 
 /**
  * Identifies an SQS message, when (negative)acknowledging the message
@@ -24,38 +25,35 @@ import com.amazon.sqs.javamessaging.message.SQSMessage;
 public class SQSMessageIdentifier {
 
     // The queueUrl where the message was sent or received from
-    private String queueUrl;
+    private final String queueUrl;
 
     // The receipt handle returned after the delivery of the message from SQS
-    private String receiptHandle;
+    private final String receiptHandle;
 
     // The SQS message id assigned on send.
-    private String sqsMessageId;
-    
+    private final String sqsMessageId;
+
     // The group id to which the message belongs
-    private String groupId;
+    private final String groupId;
 
     public SQSMessageIdentifier(String queueUrl, String receiptHandle, String sqsMessageId) {
         this(queueUrl, receiptHandle, sqsMessageId, null);
     }
-    
+
     public SQSMessageIdentifier(String queueUrl, String receiptHandle, String sqsMessageId, String groupId) {
         this.queueUrl = queueUrl;
         this.receiptHandle = receiptHandle;
         this.sqsMessageId = sqsMessageId;
-        this.groupId = groupId;
-        if (this.groupId != null && this.groupId.isEmpty()) {
-            this.groupId = null;
-        }
+        this.groupId = StringUtils.isNullOrEmpty(groupId) || groupId.trim().isEmpty() ? null : groupId.trim();
     }
-    
+
     public static SQSMessageIdentifier fromSQSMessage(SQSMessage sqsMessage) throws JMSException {
         return new SQSMessageIdentifier(sqsMessage.getQueueUrl(), sqsMessage.getReceiptHandle(), sqsMessage.getSQSMessageId(), sqsMessage.getSQSMessageGroupId());
     }
 
     /**
      * Returns the queueUrl where the message was sent or received from.
-     * 
+     *
      * @return queueUrl
      */
     public String getQueueUrl() {
@@ -65,7 +63,7 @@ public class SQSMessageIdentifier {
     /**
      * Returns the receipt handle returned after the delivery of the message
      * from SQS.
-     * 
+     *
      * @return receiptHandle
      */
     public String getReceiptHandle() {
@@ -74,16 +72,16 @@ public class SQSMessageIdentifier {
 
     /**
      * Returns the SQS message id assigned on send.
-     * 
+     *
      * @return sqsMessageId
      */
     public String getSQSMessageID() {
         return this.sqsMessageId;
     }
-    
+
     /**
      * Returns the group id to which the message belongs. Non-null only for messages received from FIFO queues.
-     * 
+     *
      * @return groupId
      */
     public String getGroupId() {
@@ -120,16 +118,13 @@ public class SQSMessageIdentifier {
         } else if (!receiptHandle.equals(other.receiptHandle))
             return false;
         if (sqsMessageId == null) {
-            if (other.sqsMessageId != null)
-                return false;
-        } else if (!sqsMessageId.equals(other.sqsMessageId))
-            return false;
-        return true;
+            return other.sqsMessageId == null;
+        } else return sqsMessageId.equals(other.sqsMessageId);
     }
 
     @Override
     public String toString() {
         return "SQSMessageIdentifier [queueUrl=" + queueUrl + ", receiptHandle=" + receiptHandle +
-               ", sqsMessageId=" + sqsMessageId + "]";
+                ", sqsMessageId=" + sqsMessageId + "]";
     }
 }

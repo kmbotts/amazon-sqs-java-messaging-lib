@@ -14,10 +14,10 @@
  */
 package com.amazon.sqs.javamessaging;
 
+import com.amazon.sqs.javamessaging.acknowledge.SendMessageAsyncHandler;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSAsync;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.amazonaws.services.sqs.model.SendMessageResult;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -37,13 +37,18 @@ import javax.jms.Queue;
  * operation.
  * <p>
  */
-public class SQSMessageProducer extends AbstractMessageProducer<AmazonSQS> {
-    private static final Log LOG = LogFactory.getLog(SQSMessageProducer.class);
+public class SQSAsyncMessageProducer extends AbstractMessageProducer<AmazonSQSAsync> {
+    private static final Log LOG = LogFactory.getLog(SQSAsyncMessageProducer.class);
 
-    SQSMessageProducer(AbstractSQSClientWrapper<AmazonSQS> sqsMessagingClientWrapper,
-                       AbstractSession<AmazonSQS> parentSQSSession,
-                       Destination destination) throws JMSException {
-        super(sqsMessagingClientWrapper, parentSQSSession, destination);
+    SQSAsyncMessageProducer(AbstractSQSClientWrapper<AmazonSQSAsync> sqsAsyncMessagingClientWrapper,
+                            AbstractSession<AmazonSQSAsync> parentSQSSession,
+                            Destination destination) throws JMSException {
+        super(sqsAsyncMessagingClientWrapper, parentSQSSession, destination);
+    }
+
+    @Override
+    protected AmazonSQSAsyncMessagingClientWrapper getSqsClientWrapper() {
+        return (AmazonSQSAsyncMessagingClientWrapper) super.getSqsClientWrapper();
     }
 
     @Override
@@ -52,18 +57,8 @@ public class SQSMessageProducer extends AbstractMessageProducer<AmazonSQS> {
         SQSQueueDestination sqsQueueDestination = checkInvalidDestination(queue);
         SQSMessage sqsMessage = checkMessageFormat(message);
 
-        SendMessageRequest sendMessageRequest = getSendMessageRequest(sqsQueueDestination, sqsMessage);
-        SendMessageResult sendMessageResult = getSqsClientWrapper().sendMessage(sendMessageRequest);
-        String messageId = sendMessageResult.getMessageId();
-        LOG.info("Message sent to SQS with SQS-assigned messageId: " + messageId);
-        /* TODO: Do not support disableMessageID for now. */
-        sqsMessage.setSQSMessageId(messageId);
+        SendMessageRequest sendMessageRequest = getSendMessageRequest(sqsQueueDestination, message);
 
-        // if the message was sent to FIFO queue, the sequence number will be
-        // set in the response
-        // pass it to JMS user through provider specific JMS property
-        if (sendMessageResult.getSequenceNumber() != null) {
-            sqsMessage.setSequenceNumber(sendMessageResult.getSequenceNumber());
-        }
+        getSqsClientWrapper().sendMessageAsync(sendMessageRequest, new SendMessageAsyncHandler(sqsMessage, listener));
     }
 }

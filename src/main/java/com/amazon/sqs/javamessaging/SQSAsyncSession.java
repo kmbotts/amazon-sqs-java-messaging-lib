@@ -15,7 +15,7 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSAsync;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -46,23 +46,21 @@ import java.util.Set;
  * <li>Transactions</li>
  * </ul>
  */
-public class SQSSession extends AbstractSession<AmazonSQS> {
+public class SQSAsyncSession extends AbstractSession<AmazonSQSAsync> {
 
-    SQSSession(AbstractConnection<AmazonSQS> parentSQSConnection,
-               AcknowledgeMode acknowledgeMode) throws JMSException {
+    SQSAsyncSession(AbstractConnection<AmazonSQSAsync> parentSQSConnection, AcknowledgeMode acknowledgeMode) throws JMSException {
         super(parentSQSConnection, acknowledgeMode);
     }
 
-    SQSSession(AbstractConnection<AmazonSQS> parentSQSConnection,
-               AcknowledgeMode acknowledgeMode,
-               Set<SQSMessageConsumer<AmazonSQS>> messageConsumers,
-               Set<AbstractMessageProducer<AmazonSQS>> messageProducers) throws JMSException {
-
+    SQSAsyncSession(AbstractConnection<AmazonSQSAsync> parentSQSConnection,
+                    AcknowledgeMode acknowledgeMode,
+                    Set<SQSMessageConsumer<AmazonSQSAsync>> messageConsumers,
+                    Set<AbstractMessageProducer<AmazonSQSAsync>> messageProducers) throws JMSException {
         super(parentSQSConnection, acknowledgeMode, messageConsumers, messageProducers);
     }
 
     @Override
-    protected AbstractMessageProducer<AmazonSQS> createMessageProducer(AbstractSQSClientWrapper<AmazonSQS> sqsClientWrapper, AbstractSession<AmazonSQS> session, Destination destination) throws JMSException {
-        return new SQSMessageProducer(sqsClientWrapper, session, destination);
+    protected AbstractMessageProducer<AmazonSQSAsync> createMessageProducer(AbstractSQSClientWrapper<AmazonSQSAsync> sqsClientWrapper, AbstractSession<AmazonSQSAsync> session, Destination destination) throws JMSException {
+        return new SQSAsyncMessageProducer(sqsClientWrapper, session, destination);
     }
 }

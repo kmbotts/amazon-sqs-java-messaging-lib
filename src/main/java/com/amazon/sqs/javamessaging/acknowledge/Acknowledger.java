@@ -14,42 +14,40 @@
  */
 package com.amazon.sqs.javamessaging.acknowledge;
 
-import java.util.List;
+import com.amazon.sqs.javamessaging.message.SQSMessage;
 
 import javax.jms.JMSException;
 
-import com.amazon.sqs.javamessaging.message.SQSMessage;
+import java.util.List;
 
 public interface Acknowledger {
 
     /**
      * Generic Acknowledge method. This method will delete message(s) in SQS Queue.
-     * 
-     * @param message
-     *            message to acknowledge.
+     *
+     * @param message message to acknowledge.
      * @throws JMSException
      */
-    public void acknowledge(SQSMessage message) throws JMSException;
+    void acknowledge(SQSMessage message) throws JMSException;
 
     /**
      * Used when receiving messages. Depending on acknowledge mode this will
      * help create list of message backlog.
-     * 
-     * @param message
-     *            notify acknowledger message is received
+     *
+     * @param message notify acknowledger message is received
      * @throws JMSException
      */
-    public void notifyMessageReceived(SQSMessage message) throws JMSException;
+    void notifyMessageReceived(SQSMessage message) throws JMSException;
 
     /**
      * Used in negative acknowledge. Gets all delivered but not acknowledged
      * messages.
      */
-    public List<SQSMessageIdentifier> getUnAckMessages();
+    List<SQSMessageIdentifier> getUnAckMessages();
 
     /**
      * Deletes all not acknowledged delivered messages.
      */
-    public void forgetUnAckMessages();
+    void forgetUnAckMessages();
 
 }

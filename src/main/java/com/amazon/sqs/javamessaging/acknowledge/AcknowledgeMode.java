@@ -14,13 +14,14 @@
  */
 package com.amazon.sqs.javamessaging.acknowledge;
 
+import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
+import com.amazon.sqs.javamessaging.AbstractSession;
+import com.amazonaws.services.sqs.AmazonSQS;
+
 import javax.jms.JMSException;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSSession;
-
 /**
- * <P>
+ * <p>
  * Specifies the different possible modes of acknowledgment:
  * <ul>
  * <li>In ACK_AUTO mode, every time the user receives a message, it is
@@ -37,7 +38,7 @@ public enum AcknowledgeMode {
     ACK_AUTO, ACK_UNORDERED, ACK_RANGE;
 
     private int originalAcknowledgeMode;
-    
+
     /**
      * Sets the acknowledge mode.
      */
@@ -45,35 +46,32 @@ public enum AcknowledgeMode {
         this.originalAcknowledgeMode = originalAcknowledgeMode;
         return this;
     }
-    
+
     /**
      * Returns the acknowledge mode.
      */
     public int getOriginalAcknowledgeMode() {
         return originalAcknowledgeMode;
     }
-    
+
     /**
      * Creates the acknowledger associated with the session, which will be used
      * to acknowledge the delivered messages on consumers of the session.
-     * 
-     * @param amazonSQSClient
-     *            the SQS client to delete messages
-     * @param parentSQSSession
-     *            the associated session for the acknowledger
-     * @throws JMSException
-     *             If invalid acknowledge mode is used.
+     *
+     * @param amazonSQSClient  the SQS client to delete messages
+     * @param parentSQSSession the associated session for the acknowledger
+     * @throws JMSException If invalid acknowledge mode is used.
      */
-    public Acknowledger createAcknowledger(AmazonSQSMessagingClientWrapper amazonSQSClient, SQSSession parentSQSSession) throws JMSException {
+    public <SQS_CLIENT extends AmazonSQS> Acknowledger createAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> parentSQSSession) throws JMSException {
         switch (this) {
-        case ACK_AUTO:
-            return new AutoAcknowledger(amazonSQSClient, parentSQSSession);
-        case ACK_RANGE:
-            return new RangedAcknowledger(amazonSQSClient, parentSQSSession);
-        case ACK_UNORDERED:
-            return new UnorderedAcknowledger(amazonSQSClient, parentSQSSession);
-        default:
-            throw new JMSException(this + " - AcknowledgeMode does not exist");
+            case ACK_AUTO:
+                return new AutoAcknowledger<>(amazonSQSClient, parentSQSSession);
+            case ACK_RANGE:
+                return new RangedAcknowledger<>(amazonSQSClient, parentSQSSession);
+            case ACK_UNORDERED:
+                return new UnorderedAcknowledger<>(amazonSQSClient, parentSQSSession);
+            default:
+                throw new JMSException(this + " - AcknowledgeMode does not exist");
         }
     }
 }

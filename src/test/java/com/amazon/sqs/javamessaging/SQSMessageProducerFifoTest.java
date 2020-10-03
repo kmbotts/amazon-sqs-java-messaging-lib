@@ -15,10 +15,6 @@
 package com.amazon.sqs.javamessaging;
 
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSMessageProducer;
-import com.amazon.sqs.javamessaging.SQSQueueDestination;
-import com.amazon.sqs.javamessaging.SQSSession;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.message.SQSBytesMessage;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
@@ -28,6 +24,9 @@ import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.amazonaws.util.Base64;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 import javax.jms.JMSException;
 
@@ -37,9 +36,6 @@ import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -206,7 +202,7 @@ public class SQSMessageProducerFifoTest {
     }
 
     /**
-     * Test sendInternal input with SQSTextMessage
+     * Test sendMessageInternal input with SQSTextMessage
      */
     @Test
     public void testSendInternalSQSTextMessage() throws JMSException {
@@ -219,7 +215,7 @@ public class SQSMessageProducerFifoTest {
         when(amazonSQSClient.sendMessage(any(SendMessageRequest.class)))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID).withSequenceNumber(SEQ_NUMBER));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messageBody, SQSMessage.TEXT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
@@ -229,7 +225,7 @@ public class SQSMessageProducerFifoTest {
     }
 
     /**
-     * Test sendInternal input with SQSTextMessage
+     * Test sendMessageInternal input with SQSTextMessage
      */
     @Test
     public void testSendInternalSQSTextMessageFromReceivedMessage() throws JMSException {
@@ -260,7 +256,7 @@ public class SQSMessageProducerFifoTest {
         when(amazonSQSClient.sendMessage(any(SendMessageRequest.class)))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID).withSequenceNumber(SEQ_NUMBER_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, "MessageBody", SQSMessage.TEXT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
@@ -270,7 +266,7 @@ public class SQSMessageProducerFifoTest {
     }
 
     /**
-     * Test sendInternal input with SQSObjectMessage
+     * Test sendMessageInternal input with SQSObjectMessage
      */
     @Test
     public void testSendInternalSQSObjectMessage() throws JMSException {
@@ -286,7 +282,7 @@ public class SQSMessageProducerFifoTest {
         when(amazonSQSClient.sendMessage(any(SendMessageRequest.class)))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID).withSequenceNumber(SEQ_NUMBER));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, msgBody, SQSMessage.OBJECT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
@@ -296,7 +292,7 @@ public class SQSMessageProducerFifoTest {
     }
 
     /**
-     * Test sendInternal input with SQSObjectMessage
+     * Test sendMessageInternal input with SQSObjectMessage
      */
     @Test
     public void testSendInternalSQSObjectMessageFromReceivedMessage() throws JMSException, IOException {
@@ -336,7 +332,7 @@ public class SQSMessageProducerFifoTest {
         when(amazonSQSClient.sendMessage(any(SendMessageRequest.class)))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID).withSequenceNumber(SEQ_NUMBER_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messageBody, SQSMessage.OBJECT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
@@ -346,7 +342,7 @@ public class SQSMessageProducerFifoTest {
     }
 
     /**
-     * Test sendInternal input with SQSByteMessage
+     * Test sendMessageInternal input with SQSByteMessage
      */
     @Test
     public void testSendInternalSQSByteMessage() throws JMSException {
@@ -360,7 +356,7 @@ public class SQSMessageProducerFifoTest {
         when(amazonSQSClient.sendMessage(any(SendMessageRequest.class)))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID).withSequenceNumber(SEQ_NUMBER));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         String messageBody = "AA==";
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messageBody, SQSMessage.BYTE_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
@@ -372,7 +368,7 @@ public class SQSMessageProducerFifoTest {
     }
 
     /**
-     * Test sendInternal input with SQSByteMessage
+     * Test sendMessageInternal input with SQSByteMessage
      */
     @Test
     public void testSendInternalSQSByteMessageFromReceivedMessage() throws JMSException, IOException {
@@ -405,7 +401,7 @@ public class SQSMessageProducerFifoTest {
         when(amazonSQSClient.sendMessage(any(SendMessageRequest.class)))
                 .thenReturn(new SendMessageResult().withMessageId(MESSAGE_ID).withSequenceNumber(SEQ_NUMBER_2));
 
-        producer.sendInternal(destination, msg);
+        producer.sendMessageInternal(destination, msg, null);
 
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messageBody, SQSMessage.BYTE_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);

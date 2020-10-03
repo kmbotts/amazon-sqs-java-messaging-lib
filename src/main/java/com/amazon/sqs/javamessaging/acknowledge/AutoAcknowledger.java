@@ -14,15 +14,16 @@
  */
 package com.amazon.sqs.javamessaging.acknowledge;
 
-import java.util.Collections;
-import java.util.List;
+import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
+import com.amazon.sqs.javamessaging.AbstractSession;
+import com.amazon.sqs.javamessaging.message.SQSMessage;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 
 import javax.jms.JMSException;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSSession;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.model.DeleteMessageRequest;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Used by session to automatically acknowledge a client's receipt of a message
@@ -30,24 +31,26 @@ import com.amazonaws.services.sqs.model.DeleteMessageRequest;
  * when the message listener the session has called to process the message
  * successfully returns.
  */
-public class AutoAcknowledger implements Acknowledger {
+public class AutoAcknowledger<SQS_CLIENT extends AmazonSQS> implements Acknowledger {
 
-    private final AmazonSQSMessagingClientWrapper amazonSQSClient;
-    private final SQSSession session;
+    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+    private final AbstractSession<SQS_CLIENT> session;
 
-    public AutoAcknowledger(AmazonSQSMessagingClientWrapper amazonSQSClient, SQSSession session) {
+    public AutoAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
     }
-    
-    /** Acknowledges the consumed message via calling <code>deleteMessage</code> */
+
+    /**
+     * Acknowledges the consumed message via calling <code>deleteMessage</code>
+     */
     @Override
     public void acknowledge(SQSMessage message) throws JMSException {
         session.checkClosed();
         amazonSQSClient.deleteMessage(new DeleteMessageRequest(
                 message.getQueueUrl(), message.getReceiptHandle()));
     }
-    
+
     /**
      * When notify message is received, it will acknowledge the message.
      */
@@ -55,19 +58,20 @@ public class AutoAcknowledger implements Acknowledger {
     public void notifyMessageReceived(SQSMessage message) throws JMSException {
         acknowledge(message);
     }
-    
+
     /**
      * AutoAcknowledge doesn't need to do anything in this method. Return an
      * empty list.
      */
     @Override
     public List<SQSMessageIdentifier> getUnAckMessages() {
-        return Collections.<SQSMessageIdentifier>emptyList(); 
+        return Collections.emptyList();
     }
-    
-    /** AutoAcknowledge doesn't need to do anything in this method. */
+
+    /**
+     * AutoAcknowledge doesn't need to do anything in this method.
+     */
     @Override
     public void forgetUnAckMessages() {
     }
- 
 }

@@ -14,46 +14,47 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.jms.JMSException;
-import javax.jms.MessageListener;
-import javax.jms.Session;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
+import com.amazon.sqs.javamessaging.AbstractSession.CallbackEntry;
 import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch.MessageManager;
-import com.amazon.sqs.javamessaging.SQSSession.CallbackEntry;
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
+import com.amazonaws.services.sqs.AmazonSQS;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import javax.jms.JMSException;
+import javax.jms.MessageListener;
+import javax.jms.Session;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Used internally to guarantee serial execution of message processing on
  * consumer message listeners.
  */
-public class SQSSessionCallbackScheduler implements Runnable {
+class SQSSessionCallbackScheduler<SQS_CLIENT extends AmazonSQS> implements Runnable {
     private static final Log LOG = LogFactory.getLog(SQSSessionCallbackScheduler.class);
-    
-    protected ArrayDeque<CallbackEntry> callbackQueue;
 
-    private AcknowledgeMode acknowledgeMode;
+    protected final Deque<CallbackEntry> callbackQueue;
 
-    private SQSSession session;
-    
-    private NegativeAcknowledger negativeAcknowledger;
-    
+    private final AcknowledgeMode acknowledgeMode;
+
+    private final AbstractSession<SQS_CLIENT> session;
+
+    private final NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger;
+
     private final Acknowledger acknowledger;
-    
+
     /**
      * Only set from the callback thread to transfer the ownership of closing
      * the consumer. The message listener's onMessage method can call
@@ -63,33 +64,44 @@ public class SQSSessionCallbackScheduler implements Runnable {
      * <code>close</code> on message consumer.
      */
     private SQSMessageConsumer consumerCloseAfterCallback;
-    
+
     private volatile boolean closed = false;
-        
-    SQSSessionCallbackScheduler(SQSSession session, AcknowledgeMode acknowledgeMode, Acknowledger acknowledger, NegativeAcknowledger negativeAcknowledger) {
+
+    SQSSessionCallbackScheduler(AbstractSession<SQS_CLIENT> session,
+                                AcknowledgeMode acknowledgeMode,
+                                Acknowledger acknowledger,
+                                NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger) {
+        this(session, acknowledgeMode, acknowledger, negativeAcknowledger, new ArrayDeque<>());
+    }
+
+    SQSSessionCallbackScheduler(AbstractSession<SQS_CLIENT> session,
+                                AcknowledgeMode acknowledgeMode,
+                                Acknowledger acknowledger,
+                                NegativeAcknowledger<SQS_CLIENT> negativeAcknowledger,
+                                Deque<CallbackEntry> callbackQueue) {
         this.session = session;
         this.acknowledgeMode = acknowledgeMode;
         this.acknowledger = acknowledger;
         this.negativeAcknowledger = negativeAcknowledger;
-        callbackQueue = new ArrayDeque<CallbackEntry>();
+        this.callbackQueue = callbackQueue;
     }
-    
+
     /**
      * Used in case no consumers have started, and session needs to terminate
      * the thread
      */
     void close() {
         closed = true;
-        /** Wake-up the thread in case it was blocked on empty queue */
+        /* Wake-up the thread in case it was blocked on empty queue */
         synchronized (callbackQueue) {
             callbackQueue.notify();
         }
     }
-    
+
     @Override
     public void run() {
         CallbackEntry callbackEntry = null;
-        try {            
+        try {
             while (true) {
                 try {
                     if (closed) {
@@ -101,9 +113,9 @@ public class SQSSessionCallbackScheduler implements Runnable {
                             try {
                                 callbackQueue.wait();
                             } catch (InterruptedException e) {
-                                /**
-                                 * Will be retried on the next loop, and
-                                 * break if the callback scheduler is closed.
+                                /*
+                                  Will be retried on the next loop, and
+                                  break if the callback scheduler is closed.
                                  */
                                 if (LOG.isDebugEnabled()) {
                                     LOG.debug("wait on empty callback queue interrupted: " + e.getMessage());
@@ -115,13 +127,13 @@ public class SQSSessionCallbackScheduler implements Runnable {
 
                     MessageListener messageListener = callbackEntry.getMessageListener();
                     MessageManager messageManager = callbackEntry.getMessageManager();
-                    SQSMessage message = (SQSMessage) messageManager.getMessage();    
+                    SQSMessage message = (SQSMessage) messageManager.getMessage();
                     SQSMessageConsumer messageConsumer = messageManager.getPrefetchManager().getMessageConsumer();
                     if (messageConsumer.isClosed()) {
                         nackReceivedMessage(message);
                         continue;
                     }
-                    
+
                     try {
                         // this takes care of start and stop
                         session.startingCallback(messageConsumer);
@@ -133,9 +145,9 @@ public class SQSSessionCallbackScheduler implements Runnable {
                     }
 
                     try {
-                        /**
-                         * Notifying consumer prefetch thread so that it can
-                         * continue to prefetch
+                        /*
+                          Notifying consumer prefetch thread so that it can
+                          continue to prefetch
                          */
                         messageManager.getPrefetchManager().messageDispatched();
                         int ackMode = acknowledgeMode.getOriginalAcknowledgeMode();
@@ -150,7 +162,7 @@ public class SQSSessionCallbackScheduler implements Runnable {
                                     messageListener.onMessage(message);
                                 } catch (Throwable ex) {
                                     LOG.info("Exception thrown from onMessage callback for message " +
-                                             message.getSQSMessageId(), ex);
+                                            message.getSQSMessageId(), ex);
                                     callbackFailed = true;
                                 } finally {
                                     if (!callbackFailed) {
@@ -171,10 +183,10 @@ public class SQSSessionCallbackScheduler implements Runnable {
                             }
                         }
 
-                        /**
-                         * The consumer close is delegated to the session thread
-                         * if consumer close is called by its message listener's
-                         * onMessage method on its own consumer.
+                        /*
+                          The consumer close is delegated to the session thread
+                          if consumer close is called by its message listener's
+                          onMessage method on its own consumer.
                          */
                         if (consumerCloseAfterCallback != null) {
                             consumerCloseAfterCallback.doClose();
@@ -182,7 +194,7 @@ public class SQSSessionCallbackScheduler implements Runnable {
                         }
                     } finally {
                         session.finishedCallback();
-                        
+
                         // Let the prefetch manager know we're available to
                         // process another message (if there is a still a listener attached).
                         messageManager.getPrefetchManager().messageListenerReady();
@@ -198,11 +210,11 @@ public class SQSSessionCallbackScheduler implements Runnable {
             nackQueuedMessages();
         }
     }
-    
+
     void setConsumerCloseAfterCallback(SQSMessageConsumer messageConsumer) {
         consumerCloseAfterCallback = messageConsumer;
     }
-    
+
     void scheduleCallBacks(MessageListener messageListener, List<MessageManager> messageManagers) {
         synchronized (callbackQueue) {
             try {
@@ -215,11 +227,11 @@ public class SQSSessionCallbackScheduler implements Runnable {
             }
         }
     }
-    
+
     void nackQueuedMessages() {
         synchronized (callbackQueue) {
             try {
-                List<SQSMessageIdentifier> nackMessageIdentifiers = new ArrayList<SQSMessageIdentifier>();
+                List<SQSMessageIdentifier> nackMessageIdentifiers = new ArrayList<>();
                 while (!callbackQueue.isEmpty()) {
                     SQSMessage nackMessage = (SQSMessage) callbackQueue.pollFirst().getMessageManager().getMessage();
                     nackMessageIdentifiers.add(SQSMessageIdentifier.fromSQSMessage(nackMessage));
@@ -237,9 +249,9 @@ public class SQSSessionCallbackScheduler implements Runnable {
     private void nackReceivedMessage(SQSMessage message) {
         try {
             SQSMessageIdentifier messageIdentifier = SQSMessageIdentifier.fromSQSMessage(message);
-            List<SQSMessageIdentifier> nackMessageIdentifiers = new ArrayList<SQSMessageIdentifier>();
+            List<SQSMessageIdentifier> nackMessageIdentifiers = new ArrayList<>();
             nackMessageIdentifiers.add(messageIdentifier);
-            
+
             //failing to process a message with a specific group id means we have to nack all the pending messages with the same group id
             //to prevent processing messages out of order
             if (messageIdentifier.getGroupId() != null) {
@@ -247,7 +259,7 @@ public class SQSSessionCallbackScheduler implements Runnable {
                 Map<String, Set<String>> queueToGroupsMapping = Collections.singletonMap(messageIdentifier.getQueueUrl(), Collections.singleton(messageIdentifier.getGroupId()));
                 nackMessageIdentifiers.addAll(purgeScheduledCallbacksForQueuesAndGroups(queueToGroupsMapping));
             }
-            
+
             negativeAcknowledger.bulkAction(nackMessageIdentifiers, nackMessageIdentifiers.size());
         } catch (JMSException e) {
             LOG.warn("Unable to nack the message " + message.getSQSMessageId(), e);
@@ -255,18 +267,18 @@ public class SQSSessionCallbackScheduler implements Runnable {
     }
 
     List<SQSMessageIdentifier> purgeScheduledCallbacksForQueuesAndGroups(Map<String, Set<String>> queueToGroupsMapping) throws JMSException {
-        List<SQSMessageIdentifier> purgedCallbacks = new ArrayList<SQSMessageIdentifier>();
+        List<SQSMessageIdentifier> purgedCallbacks = new ArrayList<>();
         synchronized (callbackQueue) {
             //let's walk over the callback queue
             Iterator<CallbackEntry> callbackIterator = callbackQueue.iterator();
             while (callbackIterator.hasNext()) {
                 CallbackEntry callbackEntry = callbackIterator.next();
                 SQSMessageIdentifier pendingCallbackIdentifier = SQSMessageIdentifier.fromSQSMessage((SQSMessage) callbackEntry.getMessageManager().getMessage());
-                
+
                 //is the callback entry for one of the affected queues?
                 Set<String> affectedGroupsInQueue = queueToGroupsMapping.get(pendingCallbackIdentifier.getQueueUrl());
                 if (affectedGroupsInQueue != null) {
-                    
+
                     //is the callback entry for one of the affected group ids?
                     if (affectedGroupsInQueue.contains(pendingCallbackIdentifier.getGroupId())) {
                         //we will purge this callback

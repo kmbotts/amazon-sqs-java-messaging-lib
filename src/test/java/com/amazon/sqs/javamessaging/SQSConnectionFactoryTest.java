@@ -14,74 +14,67 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import javax.jms.JMSException;
-
-import org.junit.Test;
-
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import org.junit.Test;
 
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+import javax.jms.JMSException;
+
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
 
 
 public class SQSConnectionFactoryTest {
 
-    @Test
-    public void canUseDeprecatedBuilderToCreateFactory() throws JMSException {
-        SQSConnectionFactory factory = SQSConnectionFactory.builder().build();
-        SQSConnection connection = factory.createConnection();
-        connection.close();
-    }
-    
     @Test
     public void canCreateFactoryWithDefaultProviderSettings() throws JMSException {
         SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration());
         //cannot actually attempt to create a connection because the default client builder depends on environment settings or instance configuration to be present
         //which we cannot guarantee on the builder fleet
     }
-    
+
     @Test
     public void canCreateFactoryWithCustomClient() throws JMSException {
         AmazonSQS client = mock(AmazonSQS.class);
         SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), client);
-        SQSConnection connection = factory.createConnection();
+        SQSConnection connection = (SQSConnection) factory.createConnection();
         connection.close();
     }
-    
+
     @Test
     public void factoryWithCustomClientWillUseTheSameClient() throws JMSException {
         AmazonSQS client = mock(AmazonSQS.class);
         SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), client);
-        SQSConnection connection1 = factory.createConnection();
-        SQSConnection connection2 = factory.createConnection();
-        
-        assertSame(client, connection1.getAmazonSQSClient()); 
-        assertSame(client, connection2.getAmazonSQSClient()); 
-        assertSame(connection1.getAmazonSQSClient(), connection2.getAmazonSQSClient()); 
-        
+        SQSConnection connection1 = (SQSConnection) factory.createConnection();
+        SQSConnection connection2 = (SQSConnection) factory.createConnection();
+
+        assertSame(client, connection1.getAmazonSQSClient());
+        assertSame(client, connection2.getAmazonSQSClient());
+        assertSame(connection1.getAmazonSQSClient(), connection2.getAmazonSQSClient());
+
         connection1.close();
         connection2.close();
     }
-    
+
     @Test
     public void canCreateFactoryWithCustomBuilder() throws JMSException {
         AmazonSQSClientBuilder clientBuilder = AmazonSQSClientBuilder.standard().withRegion(Regions.US_EAST_1);
         SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), clientBuilder);
-        SQSConnection connection = factory.createConnection();
+        SQSConnection connection = (SQSConnection) factory.createConnection();
         connection.close();
     }
-    
+
     @Test
     public void factoryWithCustomBuilderWillCreateNewClient() throws JMSException {
         AmazonSQSClientBuilder clientBuilder = AmazonSQSClientBuilder.standard().withRegion(Regions.US_EAST_1);
         SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), clientBuilder);
-        SQSConnection connection1 = factory.createConnection();
-        SQSConnection connection2 = factory.createConnection();
-        
-        assertNotSame(connection1.getAmazonSQSClient(), connection2.getAmazonSQSClient()); 
-        
+        SQSConnection connection1 = (SQSConnection) factory.createConnection();
+        SQSConnection connection2 = (SQSConnection) factory.createConnection();
+
+        assertNotSame(connection1.getAmazonSQSClient(), connection2.getAmazonSQSClient());
+
         connection1.close();
         connection2.close();
     }

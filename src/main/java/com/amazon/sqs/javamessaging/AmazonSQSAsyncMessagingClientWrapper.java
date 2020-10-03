@@ -14,8 +14,11 @@
  */
 package com.amazon.sqs.javamessaging;
 
+import com.amazon.sqs.javamessaging.acknowledge.SendMessageAsyncHandler;
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSAsync;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 import javax.jms.JMSException;
 
@@ -24,13 +27,22 @@ import javax.jms.JMSException;
  * <code>AmazonServiceException</code> and <code>AmazonClientException</code> into
  * JMSException/JMSSecurityException.
  */
-public class AmazonSQSMessagingClientWrapper extends AbstractSQSClientWrapper<AmazonSQS> {
+public class AmazonSQSAsyncMessagingClientWrapper extends AbstractSQSClientWrapper<AmazonSQSAsync> {
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS sqsClient) throws JMSException {
+    protected AmazonSQSAsyncMessagingClientWrapper(AmazonSQSAsync sqsClient) throws JMSException {
         super(sqsClient);
     }
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS sqsClient, AWSCredentialsProvider credentialsProvider) throws JMSException {
+    protected AmazonSQSAsyncMessagingClientWrapper(AmazonSQSAsync sqsClient, AWSCredentialsProvider credentialsProvider) throws JMSException {
         super(sqsClient, credentialsProvider);
+    }
+
+    public void sendMessageAsync(SendMessageRequest request, SendMessageAsyncHandler asyncHandler) throws JMSException {
+        try {
+            prepareRequest(request);
+            getClient().sendMessageAsync(request, asyncHandler);
+        } catch (AmazonClientException e) {
+            throw handleException(e, "sendMessage");
+        }
     }
 }

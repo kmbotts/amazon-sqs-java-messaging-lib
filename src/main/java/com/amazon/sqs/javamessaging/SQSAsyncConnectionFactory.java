@@ -14,10 +14,9 @@
  */
 package com.amazon.sqs.javamessaging;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsSyncClientBuilder;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.amazonaws.services.sqs.AmazonSQSAsync;
 
 import javax.jms.JMSException;
 import javax.jms.QueueConnection;
@@ -34,30 +33,22 @@ import javax.jms.QueueConnection;
  * <p>
  * If more physical connections than the default maximum value (that is 50 as of
  * today) are needed on the connection pool,
- * {@link com.amazonaws.ClientConfiguration} needs to be configured.
+ * {@link ClientConfiguration} needs to be configured.
  * <p>
  * None of the <code>createConnection</code> methods set-up the physical
  * connection to SQS, so validity of credentials are not checked with those
  * methods.
  */
 
-public class SQSConnectionFactory extends AbstractConnectionFactory<AmazonSQS> {
+public class SQSAsyncConnectionFactory extends AbstractConnectionFactory<AmazonSQSAsync> {
 
-    public SQSConnectionFactory(ProviderConfiguration providerConfiguration) {
-        super(providerConfiguration, AmazonSQSClientBuilder.standard());
-    }
-
-    public SQSConnectionFactory(ProviderConfiguration providerConfiguration, AwsSyncClientBuilder<AmazonSQSClientBuilder, AmazonSQS> builder) {
-        super(providerConfiguration, builder);
-    }
-
-    public SQSConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQS amazonSQS) {
-        super(providerConfiguration, amazonSQS);
+    protected SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSAsync amazonSQSAsync) {
+        super(providerConfiguration, amazonSQSAsync);
     }
 
     @Override
-    protected QueueConnection createConnection(AmazonSQS amazonSQS, AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
-        AmazonSQSMessagingClientWrapper clientWrapper = new AmazonSQSMessagingClientWrapper(amazonSQS, awsCredentialsProvider);
-        return new SQSConnection(clientWrapper, getProviderConfiguration());
+    protected QueueConnection createConnection(AmazonSQSAsync amazonSQS, AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
+        AmazonSQSAsyncMessagingClientWrapper clientWrapper = new AmazonSQSAsyncMessagingClientWrapper(amazonSQS, awsCredentialsProvider);
+        return new SQSAsyncConnection(clientWrapper, getProviderConfiguration());
     }
 }

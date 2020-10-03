@@ -14,39 +14,40 @@
  */
 package com.amazon.sqs.javamessaging.acknowledge;
 
+import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
+import com.amazon.sqs.javamessaging.AbstractSession;
+import com.amazon.sqs.javamessaging.message.SQSMessage;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.DeleteMessageRequest;
+
+import javax.jms.JMSException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.jms.JMSException;
-
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSSession;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.model.DeleteMessageRequest;
-
 /**
  * Used to acknowledge messages in any order one at a time.
- * <P>
+ * <p>
  * This class is not safe for concurrent use.
  */
-public class UnorderedAcknowledger implements Acknowledger {
+public class UnorderedAcknowledger<SQS_CLIENT extends AmazonSQS> implements Acknowledger {
 
-    private final AmazonSQSMessagingClientWrapper amazonSQSClient;
-    
-    private final SQSSession session;
-    
+    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+
+    private final AbstractSession<SQS_CLIENT> session;
+
     // key is the receipt handle of the message and value is the message
     // identifier
     private final Map<String, SQSMessageIdentifier> unAckMessages;
 
-    public UnorderedAcknowledger (AmazonSQSMessagingClientWrapper amazonSQSClient, SQSSession session) {
+    public UnorderedAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
-        this.unAckMessages  = new HashMap<String, SQSMessageIdentifier>();
+        this.unAckMessages = new HashMap<>();
     }
-    
+
     /**
      * Acknowledges the consumed message via calling <code>deleteMessage</code>.
      */
@@ -57,7 +58,7 @@ public class UnorderedAcknowledger implements Acknowledger {
                 message.getQueueUrl(), message.getReceiptHandle()));
         unAckMessages.remove(message.getReceiptHandle());
     }
-    
+
     /**
      * Updates the internal data structure for the consumed but not acknowledged
      * message.
@@ -67,15 +68,15 @@ public class UnorderedAcknowledger implements Acknowledger {
         SQSMessageIdentifier messageIdentifier = SQSMessageIdentifier.fromSQSMessage(message);
         unAckMessages.put(message.getReceiptHandle(), messageIdentifier);
     }
-    
+
     /**
      * Returns the list of all consumed but not acknowledged messages.
      */
     @Override
     public List<SQSMessageIdentifier> getUnAckMessages() {
-        return new ArrayList<SQSMessageIdentifier>(unAckMessages.values());
+        return new ArrayList<>(unAckMessages.values());
     }
-    
+
     /**
      * Clears the list of not acknowledged messages.
      */
@@ -83,5 +84,5 @@ public class UnorderedAcknowledger implements Acknowledger {
     public void forgetUnAckMessages() {
         unAckMessages.clear();
     }
-   
+
 }

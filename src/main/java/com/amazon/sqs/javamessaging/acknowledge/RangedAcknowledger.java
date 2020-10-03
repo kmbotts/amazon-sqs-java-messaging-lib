@@ -14,47 +14,47 @@
  */
 package com.amazon.sqs.javamessaging.acknowledge;
 
+import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
+import com.amazon.sqs.javamessaging.AbstractSession;
+import com.amazon.sqs.javamessaging.message.SQSMessage;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import javax.jms.JMSException;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import javax.jms.JMSException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSSession;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-
 /**
  * Used to acknowledge group of messages. Acknowledging a consumed message
  * acknowledges all messages that the session has consumed before and including
  * that message.
- * <P>
+ * <p>
  * A big backlog of consumed messages can cause memory pressure, as well as an
  * increase on the probability of duplicates.
- * <P>
+ * <p>
  * This class is not safe for concurrent use.
  */
-public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger {
+public class RangedAcknowledger<SQS_CLIENT extends AmazonSQS> extends BulkSQSOperation implements Acknowledger {
     private static final Log LOG = LogFactory.getLog(RangedAcknowledger.class);
-    
-    private final AmazonSQSMessagingClientWrapper amazonSQSClient;
 
-    private final SQSSession session;
-    
+    private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+
+    private final AbstractSession<SQS_CLIENT> session;
+
     private final Queue<SQSMessageIdentifier> unAckMessages;
 
-    public RangedAcknowledger(AmazonSQSMessagingClientWrapper amazonSQSClient, SQSSession session) {
+    public RangedAcknowledger(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient, AbstractSession<SQS_CLIENT> session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
-        this.unAckMessages  = new LinkedList<SQSMessageIdentifier>();
+        this.unAckMessages = new LinkedList<>();
     }
-    
+
     /**
      * Acknowledges all the consumed messages as well as the previously consumed
      * messages on the session via calling <code>deleteMessageBatch</code> until
@@ -68,14 +68,14 @@ public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger
 
         int indexOfMessage = indexOf(ackMessage);
 
-        /**
-         * In case the message has already been deleted, warn user about it and
-         * return. If not then then it should continue with acknowledging all
-         * the messages received before that
+        /*
+          In case the message has already been deleted, warn user about it and
+          return. If not then then it should continue with acknowledging all
+          the messages received before that
          */
         if (indexOfMessage == -1) {
             LOG.warn("SQSMessageID: " + message.getSQSMessageId() + " with SQSMessageReceiptHandle: " +
-                     message.getReceiptHandle() + " does not exist.");
+                    message.getReceiptHandle() + " does not exist.");
         } else {
             bulkAction(getUnAckMessages(), indexOfMessage);
         }
@@ -95,7 +95,7 @@ public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger
         }
         return -1;
     }
-    
+
     /**
      * Updates the internal queue for the consumed but not acknowledged
      * messages if the message was not already on queue.
@@ -106,16 +106,16 @@ public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger
         if (!unAckMessages.contains(messageIdentifier)) {
             unAckMessages.add(messageIdentifier);
         }
-    } 
-    
+    }
+
     /**
      * Returns the list of all consumed but not acknowledged messages.
      */
     @Override
     public List<SQSMessageIdentifier> getUnAckMessages() {
-        return new ArrayList<SQSMessageIdentifier>(unAckMessages);
+        return new ArrayList<>(unAckMessages);
     }
-    
+
     /**
      * Clears the list of not acknowledged messages.
      */
@@ -123,7 +123,7 @@ public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger
     public void forgetUnAckMessages() {
         unAckMessages.clear();
     }
-    
+
     /**
      * Acknowledges up to 10 messages via calling
      * <code>deleteMessageBatch</code>.
@@ -134,24 +134,24 @@ public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger
             return;
         }
 
-        List<DeleteMessageBatchRequestEntry> deleteMessageBatchRequestEntries = new ArrayList<DeleteMessageBatchRequestEntry>();
+        List<DeleteMessageBatchRequestEntry> deleteMessageBatchRequestEntries = new ArrayList<>();
         int batchId = 0;
         for (String receiptHandle : receiptHandles) {
             // Remove the message from queue of unAckMessages
             unAckMessages.poll();
-            
+
             DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry(
                     Integer.toString(batchId), receiptHandle);
             deleteMessageBatchRequestEntries.add(entry);
             batchId++;
         }
-        
+
         DeleteMessageBatchRequest deleteMessageBatchRequest = new DeleteMessageBatchRequest(
                 queueUrl, deleteMessageBatchRequestEntries);
-        /**
-         * TODO: If one of the batch calls fail, then the remaining messages on
-         * the batch will not be deleted, and will be visible and delivered as
-         * duplicate after visibility timeout expires.
+        /*
+          TODO: If one of the batch calls fail, then the remaining messages on
+          the batch will not be deleted, and will be visible and delivered as
+          duplicate after visibility timeout expires.
          */
         amazonSQSClient.deleteMessageBatch(deleteMessageBatchRequest);
     }

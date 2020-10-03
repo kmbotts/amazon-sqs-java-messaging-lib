@@ -25,9 +25,9 @@ public class SQSMessagingClientConstants {
     public static final ConnectionMetaData CONNECTION_METADATA = new SQSConnectionMetaData();
 
     public static final int MAX_BATCH = 10;
-    
+
     public static final int MIN_BATCH = 1;
-    
+
     public static final int MIN_PREFETCH = 0;
 
     /**
@@ -55,8 +55,8 @@ public class SQSMessagingClientConstants {
     public static final String INT_FALSE = "0";
 
     public static final String INT_TRUE = "1";
-    
-    public static final String MESSAGE_ID_FORMAT = "ID:%s"; 
+
+    public static final String MESSAGE_ID_FORMAT = "ID:%s";
 
     public static final String JMSX_DELIVERY_COUNT = "JMSXDeliveryCount";
 
@@ -77,6 +77,7 @@ public class SQSMessagingClientConstants {
     public static final String SEQUENCE_NUMBER = "SequenceNumber";
 
     static final String APPENDED_USER_AGENT_HEADER_VERSION;
+
     static {
         try {
             APPENDED_USER_AGENT_HEADER_VERSION = String.format(
