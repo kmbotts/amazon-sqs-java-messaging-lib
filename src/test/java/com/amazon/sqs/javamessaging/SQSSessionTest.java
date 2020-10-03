@@ -50,6 +50,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.amazon.sqs.javamessaging.AbstractSession.CONSUMER_PREFETCH_THREAD_FACTORY;
+import static com.amazon.sqs.javamessaging.AbstractSession.SESSION_THREAD_FACTORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -92,7 +94,8 @@ public class SQSSessionTest {
         parentSQSConnection = mock(SQSConnection.class);
         when(parentSQSConnection.getWrappedAmazonSQSClient())
                 .thenReturn(sqsClientJMSWrapper);
-
+        when(parentSQSConnection.getSessionThreadFactory()).thenReturn(SESSION_THREAD_FACTORY);
+        when(parentSQSConnection.getConsumerPrefetchThreadFactory()).thenReturn(CONSUMER_PREFETCH_THREAD_FACTORY);
         messageConsumers = new HashSet<>();
         messageProducers = new HashSet<>();
 
@@ -664,8 +667,6 @@ public class SQSSessionTest {
                     beforeWaitCall.countDown();
                     sqsSession.startingCallback(consumer1);
                     passedWaitCall.countDown();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 } catch (JMSException e) {
                     e.printStackTrace();
                 }

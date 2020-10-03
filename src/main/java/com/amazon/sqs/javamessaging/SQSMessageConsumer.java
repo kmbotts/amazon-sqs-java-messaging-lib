@@ -229,7 +229,7 @@ public class SQSMessageConsumer<SQS_CLIENT extends AmazonSQS> implements QueueRe
         try {
             if (!prefetchExecutor.isShutdown()) {
                 LOG.info("Shutting down " + SQSSession.CONSUMER_PREFETCH_EXECUTOR_NAME + " executor");
-                /** Shut down executor. */
+                /* Shut down executor. */
                 prefetchExecutor.shutdown();
             }
 

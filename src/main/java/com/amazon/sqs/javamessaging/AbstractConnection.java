@@ -80,11 +80,11 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
      * For now this doesn't do anything.
      */
     private ExceptionListener exceptionListener;
+
     /**
      * For now this doesn't do anything.
      */
     private String clientID;
-
 
     /**
      * Used for interactions with connection state.
@@ -103,7 +103,9 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
      * but it will make multiple calls as necessary.
      */
     private final int numberOfMessagesToPrefetch;
+
     private volatile boolean closed = false;
+
     private volatile boolean closing = false;
 
     /**
@@ -119,42 +121,23 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
 
     private final Set<Session> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    AbstractConnection(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClientJMSWrapper, int numberOfMessagesToPrefetch) {
+    protected AbstractConnection(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClientJMSWrapper,
+                                 int numberOfMessagesToPrefetch) {
         this(amazonSQSClientJMSWrapper, new ProviderConfiguration().withNumberOfMessagesToPrefetch(numberOfMessagesToPrefetch));
     }
 
-    AbstractConnection(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClientJMSWrapper, ProviderConfiguration providerConfiguration) {
+    protected AbstractConnection(AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClientJMSWrapper,
+                                 ProviderConfiguration providerConfiguration) {
         amazonSQSClient = amazonSQSClientJMSWrapper;
         this.numberOfMessagesToPrefetch = providerConfiguration.getNumberOfMessagesToPrefetch();
         this.sessionThreadFactory = providerConfiguration.getSessionThreadFactory();
         this.consumerPrefetchThreadFactory = providerConfiguration.getConsumerPrefetchThreadFactory();
     }
 
-    /**
-     * Get the AmazonSQSClient used by this connection. This can be used to do administrative operations
-     * that aren't included in the JMS specification, e.g. creating new queues.
-     *
-     * @return the AmazonSQSClient used by this connection
-     */
-    public SQS_CLIENT getAmazonSQSClient() {
-        return amazonSQSClient.getClient();
-    }
+    protected abstract AbstractSession<SQS_CLIENT> createSession(AbstractConnection<SQS_CLIENT> connection,
+                                                                 AcknowledgeMode acknowledgeMode) throws JMSException;
 
-    /**
-     * Get a wrapped version of the AmazonSQSClient used by this connection. The wrapper transforms
-     * all exceptions from the client into JMSExceptions so that it can more easily be used
-     * by existing code that already expects JMSExceptions. This client can be used to do
-     * administrative operations that aren't included in the JMS specification, e.g. creating new queues.
-     *
-     * @return wrapped version of the AmazonSQSClient used by this connection
-     */
-    public AbstractSQSClientWrapper<SQS_CLIENT> getWrappedAmazonSQSClient() {
-        return amazonSQSClient;
-    }
-
-    int getNumberOfMessagesToPrefetch() {
-        return numberOfMessagesToPrefetch;
-    }
+    //region QueueConnection Supported Methods
 
     /**
      * m
@@ -171,27 +154,8 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
      *                      transaction and acknowledge mode.
      */
     @Override
-    public QueueSession createQueueSession(boolean transacted, int acknowledgeMode) throws JMSException {
-        return (QueueSession) createSession(transacted, acknowledgeMode);
-    }
-
-    protected abstract AbstractSession<SQS_CLIENT> createSession(AbstractConnection<SQS_CLIENT> connection, AcknowledgeMode acknowledgeMode) throws JMSException;
-
-    /**
-     * Creates a <code>Session</code>
-     *
-     * @param transacted      Only false is supported.
-     * @param acknowledgeMode Legal values are <code>Session.AUTO_ACKNOWLEDGE</code>,
-     *                        <code>Session.CLIENT_ACKNOWLEDGE</code>,
-     *                        <code>Session.DUPS_OK_ACKNOWLEDGE</code>, and
-     *                        <code>SQSSession.UNORDERED_ACKNOWLEDGE</code>
-     * @return a new session.
-     * @throws JMSException If the QueueConnection object fails to create a session due
-     *                      to some internal error or lack of support for the specific
-     *                      transaction and acknowledge mode.
-     */
-    @Override
-    public Session createSession(boolean transacted, int acknowledgeMode) throws JMSException {
+    public QueueSession createQueueSession(boolean transacted,
+                                           int acknowledgeMode) throws JMSException {
         checkClosed();
         actionOnConnectionTaken = true;
         if (transacted || acknowledgeMode == Session.SESSION_TRANSACTED)
@@ -227,6 +191,28 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
 
         return sqsSession;
     }
+    //endregion
+
+    //region Connection Supported Methods
+
+    /**
+     * Creates a <code>Session</code>
+     *
+     * @param transacted      Only false is supported.
+     * @param acknowledgeMode Legal values are <code>Session.AUTO_ACKNOWLEDGE</code>,
+     *                        <code>Session.CLIENT_ACKNOWLEDGE</code>,
+     *                        <code>Session.DUPS_OK_ACKNOWLEDGE</code>, and
+     *                        <code>SQSSession.UNORDERED_ACKNOWLEDGE</code>
+     * @return a new session.
+     * @throws JMSException If the QueueConnection object fails to create a session due
+     *                      to some internal error or lack of support for the specific
+     *                      transaction and acknowledge mode.
+     */
+    @Override
+    public Session createSession(boolean transacted,
+                                 int acknowledgeMode) throws JMSException {
+        return createQueueSession(transacted, acknowledgeMode);
+    }
 
     @Override
     public Session createSession(int sessionMode) throws JMSException {
@@ -236,6 +222,57 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
     @Override
     public Session createSession() throws JMSException {
         return createSession(Session.AUTO_ACKNOWLEDGE);
+    }
+
+    /**
+     * Gets the client identifier for this connection.
+     *
+     * @return client identifier
+     * @throws JMSException If the connection is being closed
+     */
+    @Override
+    public String getClientID() throws JMSException {
+        checkClosing();
+        return clientID;
+    }
+
+    /**
+     * Sets the client identifier for this connection.
+     * <p>
+     * Does not verify uniqueness of client ID, so does not detect if another
+     * connection is already using the same client ID
+     *
+     * @param clientID The client identifier
+     * @throws JMSException             If the connection is being closed
+     * @throws InvalidClientIDException If empty or null client ID is used
+     * @throws IllegalStateException    If the client ID is already set or attempted to set after an
+     *                                  action on the connection already took place
+     */
+    @Override
+    public void setClientID(String clientID) throws JMSException {
+        checkClosing();
+        if (clientID == null || clientID.isEmpty()) {
+            throw new InvalidClientIDException("ClientID is empty");
+        }
+        if (this.clientID != null) {
+            throw new IllegalStateException("ClientID is already set");
+        }
+        if (actionOnConnectionTaken) {
+            throw new IllegalStateException("Client ID cannot be set after any action on the connection is taken");
+        }
+        this.clientID = clientID;
+    }
+
+    /**
+     * Get the metadata for this connection
+     *
+     * @return the connection metadata
+     * @throws JMSException If the connection is being closed
+     */
+    @Override
+    public ConnectionMetaData getMetaData() throws JMSException {
+        checkClosing();
+        return SQSMessagingClientConstants.CONNECTION_METADATA;
     }
 
     @Override
@@ -249,28 +286,6 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
         checkClosing();
         actionOnConnectionTaken = true;
         this.exceptionListener = listener;
-    }
-
-    /**
-     * Checks if the connection close is in-progress or already completed.
-     *
-     * @throws IllegalStateException If the connection close is in-progress or already completed.
-     */
-    public void checkClosing() throws IllegalStateException {
-        if (closing) {
-            throw new IllegalStateException("Connection is closed or closing");
-        }
-    }
-
-    /**
-     * Checks if the connection close is already completed.
-     *
-     * @throws IllegalStateException If the connection close is already completed.
-     */
-    public void checkClosed() throws IllegalStateException {
-        if (closed) {
-            throw new IllegalStateException("Connection is closed");
-        }
     }
 
     /**
@@ -436,71 +451,7 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
 
     }
 
-
-    /**
-     * This is used in Session. When Session is closed it will remove itself
-     * from list of Sessions.
-     */
-    void removeSession(Session session) {
-        /*
-          No need to synchronize on stateLock assuming this can be only called
-          by session.close(), on which point connection will not be worried
-          about missing closing this session.
-         */
-        sessions.remove(session);
-    }
-
-    /**
-     * Gets the client identifier for this connection.
-     *
-     * @return client identifier
-     * @throws JMSException If the connection is being closed
-     */
-    @Override
-    public String getClientID() throws JMSException {
-        checkClosing();
-        return clientID;
-    }
-
-    /**
-     * Sets the client identifier for this connection.
-     * <p>
-     * Does not verify uniqueness of client ID, so does not detect if another
-     * connection is already using the same client ID
-     *
-     * @param clientID The client identifier
-     * @throws JMSException             If the connection is being closed
-     * @throws InvalidClientIDException If empty or null client ID is used
-     * @throws IllegalStateException    If the client ID is already set or attempted to set after an
-     *                                  action on the connection already took place
-     */
-    @Override
-    public void setClientID(String clientID) throws JMSException {
-        checkClosing();
-        if (clientID == null || clientID.isEmpty()) {
-            throw new InvalidClientIDException("ClientID is empty");
-        }
-        if (this.clientID != null) {
-            throw new IllegalStateException("ClientID is already set");
-        }
-        if (actionOnConnectionTaken) {
-            throw new IllegalStateException("Client ID cannot be set after any action on the connection is taken");
-        }
-        this.clientID = clientID;
-    }
-
-    /**
-     * Get the metadata for this connection
-     *
-     * @return the connection metadata
-     * @throws JMSException If the connection is being closed
-     */
-    @Override
-    public ConnectionMetaData getMetaData() throws JMSException {
-        checkClosing();
-        return SQSMessagingClientConstants.CONNECTION_METADATA;
-    }
-
+    //region Unsupported Methods
     /**
      * This method is not supported.
      */
@@ -543,18 +494,82 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
             throws JMSException {
         throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
     }
+    //endregion
+    //endregion
 
-    public MessagingClientThreadFactory getSessionThreadFactory() {
+    //region Internal Methods
+
+    /**
+     * Get the AmazonSQSClient used by this connection. This can be used to do administrative operations
+     * that aren't included in the JMS specification, e.g. creating new queues.
+     *
+     * @return the AmazonSQSClient used by this connection
+     */
+    SQS_CLIENT getAmazonSQSClient() {
+        return amazonSQSClient.getClient();
+    }
+
+    /**
+     * Get a wrapped version of the AmazonSQSClient used by this connection. The wrapper transforms
+     * all exceptions from the client into JMSExceptions so that it can more easily be used
+     * by existing code that already expects JMSExceptions. This client can be used to do
+     * administrative operations that aren't included in the JMS specification, e.g. creating new queues.
+     *
+     * @return wrapped version of the AmazonSQSClient used by this connection
+     */
+    AbstractSQSClientWrapper<SQS_CLIENT> getWrappedAmazonSQSClient() {
+        return amazonSQSClient;
+    }
+
+    int getNumberOfMessagesToPrefetch() {
+        return numberOfMessagesToPrefetch;
+    }
+
+    /**
+     * Checks if the connection close is in-progress or already completed.
+     *
+     * @throws IllegalStateException If the connection close is in-progress or already completed.
+     */
+    void checkClosing() throws IllegalStateException {
+        if (closing) {
+            throw new IllegalStateException("Connection is closed or closing");
+        }
+    }
+
+    /**
+     * Checks if the connection close is already completed.
+     *
+     * @throws IllegalStateException If the connection close is already completed.
+     */
+    void checkClosed() throws IllegalStateException {
+        if (closed) {
+            throw new IllegalStateException("Connection is closed");
+        }
+    }
+
+    /**
+     * This is used in Session. When Session is closed it will remove itself
+     * from list of Sessions.
+     */
+    void removeSession(Session session) {
+        /*
+          No need to synchronize on stateLock assuming this can be only called
+          by session.close(), on which point connection will not be worried
+          about missing closing this session.
+         */
+        sessions.remove(session);
+    }
+
+    MessagingClientThreadFactory getSessionThreadFactory() {
         return sessionThreadFactory;
     }
 
-    public MessagingClientThreadFactory getConsumerPrefetchThreadFactory() {
+    MessagingClientThreadFactory getConsumerPrefetchThreadFactory() {
         return consumerPrefetchThreadFactory;
     }
+    //endregion
 
-    /*
-     * Unit Test Utility Functions
-     */
+    //region Unit Test Utility Methods
     void setClosed(@SuppressWarnings("SameParameterValue") boolean closed) {
         this.closed = closed;
     }
@@ -590,4 +605,5 @@ public abstract class AbstractConnection<SQS_CLIENT extends AmazonSQS> implement
     Object getStateLock() {
         return stateLock;
     }
+    //endregion
 }

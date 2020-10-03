@@ -123,7 +123,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     /**
      * False if Session is stopped.
      */
-    volatile boolean running = false;
+    private volatile boolean running = false;
 
     /**
      * True if Session is closed or close is in-progress.
@@ -131,6 +131,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     private volatile boolean closing = false;
 
     private final AbstractSQSClientWrapper<SQS_CLIENT> amazonSQSClient;
+
     private final AbstractConnection<SQS_CLIENT> parentSQSConnection;
 
     /**
@@ -167,7 +168,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     /**
      * Executor service for running MessageListener.
      */
-    final ExecutorService executor;
+    private final ExecutorService executor;
 
     private final Object stateLock = new Object();
 
@@ -181,9 +182,10 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      * Used to determine the active consumer, whose is dispatching the message
      * on the callback. Guarded by stateLock
      */
-    private SQSMessageConsumer activeConsumerInCallback = null;
+    private SQSMessageConsumer<SQS_CLIENT> activeConsumerInCallback = null;
 
-    AbstractSession(AbstractConnection<SQS_CLIENT> parentSQSConnection, AcknowledgeMode acknowledgeMode) throws JMSException {
+    AbstractSession(AbstractConnection<SQS_CLIENT> parentSQSConnection,
+                    AcknowledgeMode acknowledgeMode) throws JMSException {
         this(parentSQSConnection, acknowledgeMode,
                 Collections.newSetFromMap(new ConcurrentHashMap<>()),
                 Collections.newSetFromMap(new ConcurrentHashMap<>()));
@@ -206,17 +208,25 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         executor.execute(sqsSessionRunnable);
     }
 
-    AbstractConnection<SQS_CLIENT> getParentConnection() {
-        return parentSQSConnection;
-    }
+    protected abstract AbstractMessageProducer<SQS_CLIENT> createMessageProducer(AbstractSQSClientWrapper<SQS_CLIENT> sqsClientWrapper,
+                                                                                 AbstractSession<SQS_CLIENT> session,
+                                                                                 Destination destination) throws JMSException;
+
+    //region QueueSession Methods
+    //region Supported Methods
 
     /**
-     * @return True if the current thread is the callback thread
+     * This does not create SQS Queue. This method is only to create JMS Queue Object.
+     * Make sure the queue exists corresponding to the queueName.
+     *
+     * @param queueName queue name
+     * @return a queue destination
+     * @throws JMSException If session is closed or invalid queue is provided
      */
-    boolean isActiveCallbackSessionThread() {
-        synchronized (stateLock) {
-            return activeCallbackSessionThread == Thread.currentThread();
-        }
+    @Override
+    public Queue createQueue(String queueName) throws JMSException {
+        checkClosed();
+        return new SQSQueueDestination(queueName, amazonSQSClient.getQueueUrl(queueName).getQueueUrl());
     }
 
     /**
@@ -236,7 +246,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      * support messageSelector. It will drop anything in messageSelector.
      *
      * @param queue           a queue destination
-     * @param messageSelector
+     * @param messageSelector message selector
      * @return new message receiver
      * @throws JMSException If session is closed
      */
@@ -256,73 +266,61 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     public QueueSender createSender(Queue queue) throws JMSException {
         return (QueueSender) createProducer(queue);
     }
+    //endregion
+    //region Unsupported Methods
 
     /**
-     * Creates a <code>BytesMessage</code>.
-     *
-     * @return new <code>BytesMessage</code>
-     * @throws JMSException If session is closed or internal error
+     * This method is not supported.
      */
+    @Override
+    public QueueBrowser createBrowser(Queue queue) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public QueueBrowser createBrowser(Queue queue, String messageSelector) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public TemporaryQueue createTemporaryQueue() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+    //endregion
+    //endregion
+
+    //region Session Methods
+    //region Supported Methods
     @Override
     public BytesMessage createBytesMessage() throws JMSException {
         checkClosed();
         return new SQSBytesMessage();
     }
 
-    /**
-     * According to JMS specification, a message can be sent with only headers
-     * without any payload, SQS does not support messages with empty payload. so
-     * this method is not supported
-     */
-    @Override
-    public Message createMessage() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * Creates a <code>ObjectMessage</code>.
-     *
-     * @return new <code>ObjectMessage</code>
-     * @throws JMSException If session is closed or internal error
-     */
     @Override
     public ObjectMessage createObjectMessage() throws JMSException {
         checkClosed();
         return new SQSObjectMessage();
     }
 
-    /**
-     * Creates an initialized <code>ObjectMessage</code>.
-     *
-     * @param object The initialized <code>ObjectMessage</code>
-     * @return new <code>ObjectMessage</code>
-     * @throws JMSException If session is closed or internal error
-     */
     @Override
     public ObjectMessage createObjectMessage(Serializable object) throws JMSException {
         checkClosed();
         return new SQSObjectMessage(object);
     }
 
-    /**
-     * Creates a <code>TextMessage</code>.
-     *
-     * @return new <code>TextMessage</code>
-     * @throws JMSException If session is closed or internal error
-     */
     @Override
     public TextMessage createTextMessage() throws JMSException {
         checkClosed();
         return new SQSTextMessage();
     }
 
-    /**
-     * Creates an initialized <code>TextMessage</code>.
-     *
-     * @param text The initialized <code>TextMessage</code>
-     * @return new <code>TextMessage</code>
-     * @throws JMSException If session is closed or internal error
-     */
     @Override
     public TextMessage createTextMessage(String text) throws JMSException {
         checkClosed();
@@ -335,6 +333,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
      *
      * @return acknowledge mode
      */
+    @SuppressWarnings("RedundantThrows")
     @Override
     public int getAcknowledgeMode() throws JMSException {
         return acknowledgeMode.getOriginalAcknowledgeMode();
@@ -383,6 +382,302 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         doClose();
     }
 
+
+    /**
+     * Negative acknowledges all the messages on the session that is delivered
+     * but not acknowledged.
+     *
+     * @throws JMSException If session is closed or on internal error.
+     */
+    @Override
+    public void recover() throws JMSException {
+        checkClosed();
+
+        //let's get all unacknowledged message identifiers
+        List<SQSMessageIdentifier> unAckedMessages = acknowledger.getUnAckMessages();
+        acknowledger.forgetUnAckMessages();
+
+        //let's summarize which queues and which message groups we're nacked
+        //we have to purge all prefetched messages and queued up callback entries for affected queues and groups
+        //if not, we would end up consuming messages out of order
+        Map<String, Set<String>> queueToGroupsMapping = getAffectedGroupsPerQueueUrl(unAckedMessages);
+
+        for (SQSMessageConsumer<SQS_CLIENT> consumer : this.messageConsumers) {
+            SQSQueueDestination sqsQueue = (SQSQueueDestination) consumer.getQueue();
+            Set<String> affectedGroups = queueToGroupsMapping.get(sqsQueue.getQueueUrl());
+            if (affectedGroups != null) {
+                unAckedMessages.addAll(consumer.purgePrefetchedMessagesWithGroups(affectedGroups));
+            }
+        }
+
+        unAckedMessages.addAll(sqsSessionRunnable.purgeScheduledCallbacksForQueuesAndGroups(queueToGroupsMapping));
+
+        if (!unAckedMessages.isEmpty()) {
+            negativeAcknowledger.bulkAction(unAckedMessages, unAckedMessages.size());
+        }
+    }
+
+    @Override
+    public void run() {
+    }
+
+    /**
+     * Creates a <code>MessageProducer</code> for the specified destination.
+     * Only queue destinations are supported at this time.
+     *
+     * @param destination a queue destination
+     * @return new message producer
+     * @throws JMSException If session is closed or queue destination is not used
+     */
+    @Override
+    public MessageProducer createProducer(Destination destination) throws JMSException {
+        checkClosed();
+        if (destination != null && !(destination instanceof SQSQueueDestination)) {
+            throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
+        }
+        AbstractMessageProducer<SQS_CLIENT> messageProducer;
+        synchronized (stateLock) {
+            checkClosing();
+            messageProducer = createMessageProducer(amazonSQSClient, this, destination);
+            messageProducers.add(messageProducer);
+        }
+        return messageProducer;
+    }
+
+    /**
+     * Creates a <code>MessageConsumer</code> for the specified destination.
+     * Only queue destinations are supported at this time.
+     *
+     * @param destination a queue destination
+     * @return new message consumer
+     * @throws JMSException If session is closed or queue destination is not used
+     */
+    @Override
+    public MessageConsumer createConsumer(Destination destination) throws JMSException {
+        checkClosed();
+        if (!(destination instanceof SQSQueueDestination)) {
+            throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
+        }
+        SQSMessageConsumer<SQS_CLIENT> messageConsumer;
+        synchronized (stateLock) {
+            checkClosing();
+            messageConsumer = createSQSMessageConsumer((SQSQueueDestination) destination);
+            messageConsumers.add(messageConsumer);
+            if (running) {
+                messageConsumer.startPrefetch();
+            }
+        }
+        return messageConsumer;
+    }
+
+    /**
+     * Creates a <code>MessageConsumer</code> for the specified destination.
+     * Only queue destinations are supported at this time.
+     * It will ignore any argument in messageSelector.
+     *
+     * @param destination     a queue destination
+     * @param messageSelector message selector
+     * @return new message consumer
+     * @throws JMSException If session is closed or queue destination is not used
+     */
+    @Override
+    public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
+        if (messageSelector != null) {
+            throw new JMSException("SQSSession does not support MessageSelector. This should be null.");
+        }
+        return createConsumer(destination);
+    }
+
+    /**
+     * Creates a <code>MessageConsumer</code> for the specified destination.
+     * Only queue destinations are supported at this time. It will ignore any
+     * argument in messageSelector and NoLocal.
+     *
+     * @param destination     a queue destination
+     * @param messageSelector message selector
+     * @param NoLocal         no local
+     * @return new message consumer
+     * @throws JMSException If session is closed or queue destination is not used
+     */
+    @Override
+    public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean NoLocal) throws JMSException {
+        if (messageSelector != null) {
+            throw new JMSException("SQSSession does not support MessageSelector. This should be null.");
+        }
+        return createConsumer(destination);
+    }
+
+
+    //endregion
+
+    //region Unsupported Methods
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public MapMessage createMapMessage() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * According to JMS specification, a message can be sent with only headers
+     * without any payload, SQS does not support messages with empty payload. so
+     * this method is not supported
+     */
+    @Override
+    public Message createMessage() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public StreamMessage createStreamMessage() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * SQS does not support transacted. Transacted will always be false.
+     */
+    @SuppressWarnings("RedundantThrows")
+    @Override
+    public boolean getTransacted() throws JMSException {
+        return false;
+    }
+
+    /**
+     * This method is not supported. This method is related to transaction which SQS doesn't support
+     */
+    @Override
+    public void commit() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported. This method is related to transaction which SQS doesn't support
+     */
+    @Override
+    public void rollback() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public MessageListener getMessageListener() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void setMessageListener(MessageListener listener) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    @Override
+    public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    @Override
+    public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName, String messageSelector) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+
+    @Override
+    public MessageConsumer createDurableConsumer(Topic topic, String name) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    @Override
+    public MessageConsumer createDurableConsumer(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    @Override
+    public MessageConsumer createSharedDurableConsumer(Topic topic, String name) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    @Override
+    public MessageConsumer createSharedDurableConsumer(Topic topic, String name, String messageSelector) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public Topic createTopic(String topicName) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public TemporaryTopic createTemporaryTopic() throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported. This method is related to Topic which SQS doesn't support
+     */
+    @Override
+    public void unsubscribe(String name) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+    //endregion
+    //endregion
+
+    //region Internal Methods
+    private Map<String, Set<String>> getAffectedGroupsPerQueueUrl(List<SQSMessageIdentifier> messages) {
+        Map<String, Set<String>> queueToGroupsMapping = new HashMap<>();
+        for (SQSMessageIdentifier message : messages) {
+            String groupId = message.getGroupId();
+            if (groupId != null) {
+                String queueUrl = message.getQueueUrl();
+                if (!queueToGroupsMapping.containsKey(queueUrl)) {
+                    queueToGroupsMapping.put(queueUrl, new HashSet<>());
+                }
+                queueToGroupsMapping.get(queueUrl).add(groupId);
+            }
+        }
+        return queueToGroupsMapping;
+    }
+
+
+    /**
+     * @return True if the current thread is the callback thread
+     */
+    boolean isActiveCallbackSessionThread() {
+        synchronized (stateLock) {
+            return activeCallbackSessionThread == Thread.currentThread();
+        }
+    }
+
     void doClose() throws JMSException {
         boolean shouldClose = false;
         synchronized (stateLock) {
@@ -401,7 +696,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
             try {
                 parentSQSConnection.removeSession(this);
 
-                for (SQSMessageConsumer messageConsumer : messageConsumers) {
+                for (SQSMessageConsumer<SQS_CLIENT> messageConsumer : messageConsumers) {
                     messageConsumer.close();
                 }
 
@@ -455,113 +750,6 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         }
     }
 
-
-    /**
-     * Negative acknowledges all the messages on the session that is delivered
-     * but not acknowledged.
-     *
-     * @throws JMSException If session is closed or on internal error.
-     */
-    @Override
-    public void recover() throws JMSException {
-        checkClosed();
-
-        //let's get all unacknowledged message identifiers
-        List<SQSMessageIdentifier> unAckedMessages = acknowledger.getUnAckMessages();
-        acknowledger.forgetUnAckMessages();
-
-        //let's summarize which queues and which message groups we're nacked
-        //we have to purge all prefetched messages and queued up callback entries for affected queues and groups
-        //if not, we would end up consuming messages out of order
-        Map<String, Set<String>> queueToGroupsMapping = getAffectedGroupsPerQueueUrl(unAckedMessages);
-
-        for (SQSMessageConsumer consumer : this.messageConsumers) {
-            SQSQueueDestination sqsQueue = (SQSQueueDestination) consumer.getQueue();
-            Set<String> affectedGroups = queueToGroupsMapping.get(sqsQueue.getQueueUrl());
-            if (affectedGroups != null) {
-                unAckedMessages.addAll(consumer.purgePrefetchedMessagesWithGroups(affectedGroups));
-            }
-        }
-
-        unAckedMessages.addAll(sqsSessionRunnable.purgeScheduledCallbacksForQueuesAndGroups(queueToGroupsMapping));
-
-        if (!unAckedMessages.isEmpty()) {
-            negativeAcknowledger.bulkAction(unAckedMessages, unAckedMessages.size());
-        }
-    }
-
-    private Map<String, Set<String>> getAffectedGroupsPerQueueUrl(List<SQSMessageIdentifier> messages) {
-        Map<String, Set<String>> queueToGroupsMapping = new HashMap<String, Set<String>>();
-        for (SQSMessageIdentifier message : messages) {
-            String groupId = message.getGroupId();
-            if (groupId != null) {
-                String queueUrl = message.getQueueUrl();
-                if (!queueToGroupsMapping.containsKey(queueUrl)) {
-                    queueToGroupsMapping.put(queueUrl, new HashSet<String>());
-                }
-                queueToGroupsMapping.get(queueUrl).add(groupId);
-            }
-        }
-        return queueToGroupsMapping;
-    }
-
-    @Override
-    public void run() {
-    }
-
-    protected abstract AbstractMessageProducer<SQS_CLIENT> createMessageProducer(AbstractSQSClientWrapper<SQS_CLIENT> sqsClientWrapper,
-                                                                                 AbstractSession<SQS_CLIENT> session,
-                                                                                 Destination destination) throws JMSException;
-
-    /**
-     * Creates a <code>MessageProducer</code> for the specified destination.
-     * Only queue destinations are supported at this time.
-     *
-     * @param destination a queue destination
-     * @return new message producer
-     * @throws JMSException If session is closed or queue destination is not used
-     */
-    @Override
-    public MessageProducer createProducer(Destination destination) throws JMSException {
-        checkClosed();
-        if (destination != null && !(destination instanceof SQSQueueDestination)) {
-            throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
-        }
-        AbstractMessageProducer<SQS_CLIENT> messageProducer;
-        synchronized (stateLock) {
-            checkClosing();
-            messageProducer = createMessageProducer(amazonSQSClient, this, destination);
-            messageProducers.add(messageProducer);
-        }
-        return messageProducer;
-    }
-
-    /**
-     * Creates a <code>MessageConsumer</code> for the specified destination.
-     * Only queue destinations are supported at this time.
-     *
-     * @param destination a queue destination
-     * @return new message consumer
-     * @throws JMSException If session is closed or queue destination is not used
-     */
-    @Override
-    public MessageConsumer createConsumer(Destination destination) throws JMSException {
-        checkClosed();
-        if (!(destination instanceof SQSQueueDestination)) {
-            throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
-        }
-        SQSMessageConsumer messageConsumer;
-        synchronized (stateLock) {
-            checkClosing();
-            messageConsumer = createSQSMessageConsumer((SQSQueueDestination) destination);
-            messageConsumers.add(messageConsumer);
-            if (running) {
-                messageConsumer.startPrefetch();
-            }
-        }
-        return messageConsumer;
-    }
-
     SQSMessageConsumer<SQS_CLIENT> createSQSMessageConsumer(SQSQueueDestination destination) {
         return new SQSMessageConsumer<>(
                 parentSQSConnection, this, sqsSessionRunnable, destination,
@@ -570,78 +758,10 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     }
 
     /**
-     * Creates a <code>MessageConsumer</code> for the specified destination.
-     * Only queue destinations are supported at this time.
-     * It will ignore any argument in messageSelector.
-     *
-     * @param destination     a queue destination
-     * @param messageSelector message selector
-     * @return new message consumer
-     * @throws JMSException If session is closed or queue destination is not used
-     */
-
-    @Override
-    public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
-        if (messageSelector != null) {
-            throw new JMSException("SQSSession does not support MessageSelector. This should be null.");
-        }
-        return createConsumer(destination);
-    }
-
-    /**
-     * Creates a <code>MessageConsumer</code> for the specified destination.
-     * Only queue destinations are supported at this time. It will ignore any
-     * argument in messageSelector and NoLocal.
-     *
-     * @param destination     a queue destination
-     * @param messageSelector
-     * @param NoLocal
-     * @return new message consumer
-     * @throws JMSException If session is closed or queue destination is not used
-     */
-    @Override
-    public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean NoLocal) throws JMSException {
-        if (messageSelector != null) {
-            throw new JMSException("SQSSession does not support MessageSelector. This should be null.");
-        }
-        return createConsumer(destination);
-    }
-
-    /**
-     * This does not create SQS Queue. This method is only to create JMS Queue Object.
-     * Make sure the queue exists corresponding to the queueName.
-     *
-     * @param queueName queue name
-     * @return a queue destination
-     * @throws JMSException If session is closed or invalid queue is provided
-     */
-    @Override
-    public Queue createQueue(String queueName) throws JMSException {
-        checkClosed();
-        return new SQSQueueDestination(queueName, amazonSQSClient.getQueueUrl(queueName).getQueueUrl());
-    }
-
-    /**
-     * This does not create SQS Queue. This method is only to create JMS Queue
-     * Object. Make sure the queue exists corresponding to the queueName and
-     * ownerAccountId.
-     *
-     * @param queueName      queue name
-     * @param ownerAccountId the account id, which originally created the queue on SQS
-     * @return a queue destination
-     * @throws JMSException If session is closed or invalid queue is provided
-     */
-    Queue createQueue(String queueName, String ownerAccountId) throws JMSException {
-        checkClosed();
-        return new SQSQueueDestination(
-                queueName, amazonSQSClient.getQueueUrl(queueName, ownerAccountId).getQueueUrl());
-    }
-
-    /**
      * This is used in MessageConsumer. When MessageConsumer is closed
      * it will remove itself from list of consumers.
      */
-    void removeConsumer(SQSMessageConsumer consumer) {
+    void removeConsumer(SQSMessageConsumer<SQS_CLIENT> consumer) {
         messageConsumers.remove(consumer);
     }
 
@@ -653,7 +773,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         messageProducers.remove(producer);
     }
 
-    void startingCallback(SQSMessageConsumer consumer) throws InterruptedException, JMSException {
+    void startingCallback(SQSMessageConsumer<SQS_CLIENT> consumer) throws JMSException {
         if (closed) {
             return;
         }
@@ -687,7 +807,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         }
     }
 
-    void waitForConsumerCallbackToComplete(SQSMessageConsumer consumer) throws InterruptedException {
+    void waitForConsumerCallbackToComplete(SQSMessageConsumer<SQS_CLIENT> consumer) {
         synchronized (stateLock) {
             while (activeConsumerInCallback == consumer) {
                 try {
@@ -714,144 +834,6 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
     }
 
     /**
-     * SQS does not support transacted. Transacted will always be false.
-     */
-    @Override
-    public boolean getTransacted() throws JMSException {
-        return false;
-    }
-
-    /**
-     * This method is not supported. This method is related to transaction which SQS doesn't support
-     */
-    @Override
-    public void commit() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported. This method is related to transaction which SQS doesn't support
-     */
-    @Override
-    public void rollback() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported. This method is related to Topic which SQS doesn't support
-     */
-    @Override
-    public void unsubscribe(String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public Topic createTopic(String topicName) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public QueueBrowser createBrowser(Queue queue) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public QueueBrowser createBrowser(Queue queue, String messageSelector) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public TemporaryQueue createTemporaryQueue() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public TemporaryTopic createTemporaryTopic() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public MessageListener getMessageListener() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public void setMessageListener(MessageListener listener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public StreamMessage createStreamMessage() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public MapMessage createMapMessage() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    static class CallbackEntry {
-        private final MessageListener messageListener;
-        private final MessageManager messageManager;
-
-        CallbackEntry(MessageListener messageListener, MessageManager messageManager) {
-            this.messageListener = messageListener;
-            this.messageManager = messageManager;
-        }
-
-        public MessageListener getMessageListener() {
-            return messageListener;
-        }
-
-        public MessageManager getMessageManager() {
-            return messageManager;
-        }
-    }
-
-    /**
      * Check if session is closed.
      */
     public void checkClosed() throws IllegalStateException {
@@ -874,7 +856,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         synchronized (stateLock) {
             checkClosing();
             running = true;
-            for (SQSMessageConsumer messageConsumer : messageConsumers) {
+            for (SQSMessageConsumer<SQS_CLIENT> messageConsumer : messageConsumers) {
                 messageConsumer.startPrefetch();
             }
             stateLock.notifyAll();
@@ -886,7 +868,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         synchronized (stateLock) {
             checkClosing();
             running = false;
-            for (SQSMessageConsumer messageConsumer : messageConsumers) {
+            for (SQSMessageConsumer<SQS_CLIENT> messageConsumer : messageConsumers) {
                 messageConsumer.stopPrefetch();
             }
             waitForCallbackComplete();
@@ -894,16 +876,34 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
             stateLock.notifyAll();
         }
     }
+    //endregion
 
-    /*
-     * Unit Tests Utility Functions
+    // region Unit Tests Utility Functions
+    AbstractConnection<SQS_CLIENT> getParentConnection() {
+        return parentSQSConnection;
+    }
+
+    /**
+     * This does not create SQS Queue. This method is only to create JMS Queue
+     * Object. Make sure the queue exists corresponding to the queueName and
+     * ownerAccountId.
+     *
+     * @param queueName      queue name
+     * @param ownerAccountId the account id, which originally created the queue on SQS
+     * @return a queue destination
+     * @throws JMSException If session is closed or invalid queue is provided
      */
+    Queue createQueue(String queueName, String ownerAccountId) throws JMSException {
+        checkClosed();
+        return new SQSQueueDestination(
+                queueName, amazonSQSClient.getQueueUrl(queueName, ownerAccountId).getQueueUrl());
+    }
 
     boolean isCallbackActive() {
         return activeConsumerInCallback != null;
     }
 
-    void setActiveConsumerInCallback(SQSMessageConsumer consumer) {
+    void setActiveConsumerInCallback(SQSMessageConsumer<SQS_CLIENT> consumer) {
         activeConsumerInCallback = consumer;
     }
 
@@ -923,7 +923,7 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         this.closed = closed;
     }
 
-    void setClosing(boolean closing) {
+    void setClosing(@SuppressWarnings("SameParameterValue") boolean closing) {
         this.closing = closing;
     }
 
@@ -935,37 +935,26 @@ public abstract class AbstractSession<SQS_CLIENT extends AmazonSQS> implements Q
         return running;
     }
 
-    SQSSessionCallbackScheduler getSqsSessionRunnable() {
+    SQSSessionCallbackScheduler<SQS_CLIENT> getSqsSessionRunnable() {
         return sqsSessionRunnable;
     }
+    //endregion
 
-    @Override
-    public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
+    static class CallbackEntry {
+        private final MessageListener messageListener;
+        private final MessageManager messageManager;
 
-    @Override
-    public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName, String messageSelector) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
+        CallbackEntry(MessageListener messageListener, MessageManager messageManager) {
+            this.messageListener = messageListener;
+            this.messageManager = messageManager;
+        }
 
-    @Override
-    public MessageConsumer createDurableConsumer(Topic topic, String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
+        public MessageListener getMessageListener() {
+            return messageListener;
+        }
 
-    @Override
-    public MessageConsumer createDurableConsumer(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    @Override
-    public MessageConsumer createSharedDurableConsumer(Topic topic, String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    @Override
-    public MessageConsumer createSharedDurableConsumer(Topic topic, String name, String messageSelector) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        public MessageManager getMessageManager() {
+            return messageManager;
+        }
     }
 }

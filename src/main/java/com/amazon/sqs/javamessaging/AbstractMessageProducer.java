@@ -105,9 +105,50 @@ public abstract class AbstractMessageProducer<SQS_CLIENT extends AmazonSQS> impl
 
     protected abstract void sendMessageInternal(Queue queue, Message message, @SuppressWarnings("SameParameterValue") CompletionListener listener) throws JMSException;
 
+    //region QueueSender Methods
     @Override
     public Queue getQueue() throws JMSException {
         return sqsDestination;
+    }
+
+    /**
+     * Sends a message to a destination created during the creation time of this
+     * message producer.
+     *
+     * @param message the message to send
+     * @throws MessageFormatException        If an invalid message is specified.
+     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that did
+     *                                       not specify a destination at creation time.
+     * @throws JMSException                  If session is closed or internal error.
+     */
+    @Override
+    public void send(Message message) throws JMSException {
+        if (sqsDestination == null) {
+            throw new UnsupportedOperationException(
+                    "MessageProducer has to specify a destination at creation time.");
+        }
+        sendMessageInternal(sqsDestination, message, null);
+    }
+
+    /**
+     * Sends a message to a destination created during the creation time of this
+     * message producer.
+     * <p>
+     * Send does not support deliveryMode, priority, and timeToLive. It will
+     * ignore anything in deliveryMode, priority, and timeToLive.
+     *
+     * @param message      the message to send
+     * @param deliveryMode delivery mode
+     * @param priority     priority
+     * @param timeToLive   time to live
+     * @throws MessageFormatException        If an invalid message is specified.
+     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that did
+     *                                       not specify a destination at creation time.
+     * @throws JMSException                  If session is closed or internal error.
+     */
+    @Override
+    public void send(Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
+        send(message);
     }
 
     /**
@@ -127,6 +168,247 @@ public abstract class AbstractMessageProducer<SQS_CLIENT extends AmazonSQS> impl
         checkIfDestinationAlreadySet();
         sendMessageInternal(queue, message, null);
     }
+
+    /**
+     * Sends a message to a queue.
+     * <p>
+     * Send does not support deliveryMode, priority, and timeToLive. It will
+     * ignore anything in deliveryMode, priority, and timeToLive.
+     *
+     * @param queue        the queue destination to send this message to
+     * @param message      the message to send
+     * @param deliveryMode delivery Mode
+     * @param priority     priority
+     * @param timeToLive   time to live
+     * @throws InvalidDestinationException   If a client uses this method with a destination other than
+     *                                       SQS queue destination.
+     * @throws MessageFormatException        If an invalid message is specified.
+     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that
+     *                                       specified a destination at creation time.
+     * @throws JMSException                  If session is closed or internal error.
+     */
+    @Override
+    public void send(Queue queue, Message message, int deliveryMode, int priority, long timeToLive)
+            throws JMSException {
+        send(queue, message);
+    }
+    //endregion
+
+    //region MessageProducer Methods
+
+    /**
+     * Gets the destination associated with this MessageProducer.
+     *
+     * @return this producer's queue destination
+     */
+    @Override
+    public Destination getDestination() throws JMSException {
+        return sqsDestination;
+    }
+
+    /**
+     * Closes the message producer.
+     */
+    @Override
+    public void close() throws JMSException {
+
+        if (closed.compareAndSet(false, true)) {
+            parentSQSSession.removeProducer(this);
+        }
+    }
+
+    /**
+     * Sends a message to a queue destination.
+     *
+     * @param destination the queue destination to send this message to
+     * @param message     the message to send
+     * @throws InvalidDestinationException   If a client uses this method with a destination other than
+     *                                       valid SQS queue destination.
+     * @throws MessageFormatException        If an invalid message is specified.
+     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that
+     *                                       specified a destination at creation time.
+     * @throws JMSException                  If session is closed or internal error.
+     */
+    @Override
+    public void send(Destination destination, Message message) throws JMSException {
+        if (destination == null) {
+            throw new InvalidDestinationException("Destination cannot be null");
+        }
+        if (destination instanceof SQSQueueDestination) {
+            send((Queue) destination, message);
+        } else {
+            throw new InvalidDestinationException("Incompatible implementation of Destination. Please use SQSQueueDestination implementation.");
+        }
+    }
+
+    /**
+     * Sends a message to a queue destination.
+     * <p>
+     * Send does not support deliveryMode, priority, and timeToLive. It will
+     * ignore anything in deliveryMode, priority, and timeToLive.
+     *
+     * @param destination  the queue destination to send this message to
+     * @param message      the message to send
+     * @param deliveryMode delivery mode
+     * @param priority     priority
+     * @param timeToLive   time to live
+     * @throws InvalidDestinationException   If a client uses this method with a destination other than
+     *                                       valid SQS queue destination.
+     * @throws MessageFormatException        If an invalid message is specified.
+     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that
+     *                                       specified a destination at creation time.
+     * @throws JMSException                  If session is closed or internal error.
+     */
+    @Override
+    public void send(Destination destination, Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
+        send(destination, message);
+    }
+
+    /**
+     * Sets the minimum length of time in milliseconds that must elapse after a
+     * message is sent before the JMS provider may deliver the message to a consumer.
+     * <p>
+     * This must be a multiple of 1000, since SQS only supports delivery delays
+     * in seconds.
+     */
+    @Override
+    public void setDeliveryDelay(long deliveryDelay) {
+        if (deliveryDelay < 0 || deliveryDelay > MAXIMUM_DELIVERY_DELAY_MILLISECONDS) {
+            throw new IllegalArgumentException("Delivery delay must be non-negative and at most 15 minutes: " + deliveryDelay);
+        }
+        if (deliveryDelay % 1000 != 0) {
+            throw new IllegalArgumentException("Delivery delay must be a multiple of 1000: " + deliveryDelay);
+        }
+        this.deliveryDelaySeconds = (int) (deliveryDelay / 1000);
+    }
+
+    /**
+     * Gets the minimum length of time in milliseconds that must elapse after a
+     * message is sent before the JMS provider may deliver the message to a consumer.
+     */
+    @Override
+    public long getDeliveryDelay() {
+        return deliveryDelaySeconds * 1000;
+    }
+
+    //region Unsupported Methods
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void setDisableMessageID(boolean value) throws JMSException {
+        this.disableMessageID = value;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public boolean getDisableMessageID() throws JMSException {
+        return disableMessageID;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void setDisableMessageTimestamp(boolean value) throws JMSException {
+        this.disableMessageTimestamp = value;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public boolean getDisableMessageTimestamp() throws JMSException {
+        return disableMessageTimestamp;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void setDeliveryMode(int deliveryMode) throws JMSException {
+        this.deliveryMode = deliveryMode;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public int getDeliveryMode() throws JMSException {
+        return deliveryMode;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void setPriority(int defaultPriority) throws JMSException {
+        this.defaultPriority = defaultPriority;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public int getPriority() throws JMSException {
+        return defaultPriority;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void setTimeToLive(long timeToLive) throws JMSException {
+        this.timeToLive = timeToLive;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public long getTimeToLive() throws JMSException {
+        return timeToLive;
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void send(Message message, CompletionListener completionListener) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void send(Message message, int deliveryMode, int priority, long timeToLive, CompletionListener completionListener) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void send(Destination destination, Message message, CompletionListener completionListener) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+
+    /**
+     * This method is not supported.
+     */
+    @Override
+    public void send(Destination destination, Message message, int deliveryMode, int priority, long timeToLive, CompletionListener completionListener) throws JMSException {
+        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+    }
+    //endregion
+
+    //endregion
+
+    //region Internal Methods
 
     /**
      * Not verified on the client side, but SQS Attribute names must be valid
@@ -226,262 +508,6 @@ public abstract class AbstractMessageProducer<SQS_CLIENT extends AmazonSQS> impl
         messageAttributes.put(key, messageAttributeValue);
     }
 
-    /**
-     * Sends a message to a queue.
-     * <p>
-     * Send does not support deliveryMode, priority, and timeToLive. It will
-     * ignore anything in deliveryMode, priority, and timeToLive.
-     *
-     * @param queue        the queue destination to send this message to
-     * @param message      the message to send
-     * @param deliveryMode delivery Mode
-     * @param priority     priority
-     * @param timeToLive   time to live
-     * @throws InvalidDestinationException   If a client uses this method with a destination other than
-     *                                       SQS queue destination.
-     * @throws MessageFormatException        If an invalid message is specified.
-     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that
-     *                                       specified a destination at creation time.
-     * @throws JMSException                  If session is closed or internal error.
-     */
-    @Override
-    public void send(Queue queue, Message message, int deliveryMode, int priority, long timeToLive)
-            throws JMSException {
-        send(queue, message);
-    }
-
-    /**
-     * Gets the destination associated with this MessageProducer.
-     *
-     * @return this producer's queue destination
-     */
-    @Override
-    public Destination getDestination() throws JMSException {
-        return sqsDestination;
-    }
-
-    /**
-     * Closes the message producer.
-     */
-    @Override
-    public void close() throws JMSException {
-
-        if (closed.compareAndSet(false, true)) {
-            parentSQSSession.removeProducer(this);
-        }
-    }
-
-    /**
-     * Sends a message to a destination created during the creation time of this
-     * message producer.
-     *
-     * @param message the message to send
-     * @throws MessageFormatException        If an invalid message is specified.
-     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that did
-     *                                       not specify a destination at creation time.
-     * @throws JMSException                  If session is closed or internal error.
-     */
-    @Override
-    public void send(Message message) throws JMSException {
-        if (sqsDestination == null) {
-            throw new UnsupportedOperationException(
-                    "MessageProducer has to specify a destination at creation time.");
-        }
-        sendMessageInternal(sqsDestination, message, null);
-    }
-
-    /**
-     * Sends a message to a destination created during the creation time of this
-     * message producer.
-     * <p>
-     * Send does not support deliveryMode, priority, and timeToLive. It will
-     * ignore anything in deliveryMode, priority, and timeToLive.
-     *
-     * @param message      the message to send
-     * @param deliveryMode
-     * @param priority
-     * @param timeToLive
-     * @throws MessageFormatException        If an invalid message is specified.
-     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that did
-     *                                       not specify a destination at creation time.
-     * @throws JMSException                  If session is closed or internal error.
-     */
-    @Override
-    public void send(Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
-        send(message);
-    }
-
-    /**
-     * Sends a message to a queue destination.
-     *
-     * @param destination the queue destination to send this message to
-     * @param message     the message to send
-     * @throws InvalidDestinationException   If a client uses this method with a destination other than
-     *                                       valid SQS queue destination.
-     * @throws MessageFormatException        If an invalid message is specified.
-     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that
-     *                                       specified a destination at creation time.
-     * @throws JMSException                  If session is closed or internal error.
-     */
-    @Override
-    public void send(Destination destination, Message message) throws JMSException {
-        if (destination == null) {
-            throw new InvalidDestinationException("Destination cannot be null");
-        }
-        if (destination instanceof SQSQueueDestination) {
-            send((Queue) destination, message);
-        } else {
-            throw new InvalidDestinationException("Incompatible implementation of Destination. Please use SQSQueueDestination implementation.");
-        }
-    }
-
-    /**
-     * Sends a message to a queue destination.
-     * <p>
-     * Send does not support deliveryMode, priority, and timeToLive. It will
-     * ignore anything in deliveryMode, priority, and timeToLive.
-     *
-     * @param destination  the queue destination to send this message to
-     * @param message      the message to send
-     * @param deliveryMode
-     * @param priority
-     * @param timeToLive
-     * @throws InvalidDestinationException   If a client uses this method with a destination other than
-     *                                       valid SQS queue destination.
-     * @throws MessageFormatException        If an invalid message is specified.
-     * @throws UnsupportedOperationException If a client uses this method with a MessageProducer that
-     *                                       specified a destination at creation time.
-     * @throws JMSException                  If session is closed or internal error.
-     */
-    @Override
-    public void send(Destination destination, Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
-        send(destination, message);
-    }
-
-    @Override
-    public void send(Message message, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    @Override
-    public void send(Message message, int deliveryMode, int priority, long timeToLive, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    @Override
-    public void send(Destination destination, Message message, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    @Override
-    public void send(Destination destination, Message message, int deliveryMode, int priority, long timeToLive, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public void setDisableMessageID(boolean value) throws JMSException {
-        this.disableMessageID = value;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public boolean getDisableMessageID() throws JMSException {
-        return disableMessageID;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public void setDisableMessageTimestamp(boolean value) throws JMSException {
-        this.disableMessageTimestamp = value;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public boolean getDisableMessageTimestamp() throws JMSException {
-        return disableMessageTimestamp;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public void setDeliveryMode(int deliveryMode) throws JMSException {
-        this.deliveryMode = deliveryMode;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public int getDeliveryMode() throws JMSException {
-        return deliveryMode;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public void setPriority(int defaultPriority) throws JMSException {
-        this.defaultPriority = defaultPriority;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public int getPriority() throws JMSException {
-        return defaultPriority;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public void setTimeToLive(long timeToLive) throws JMSException {
-        this.timeToLive = timeToLive;
-    }
-
-    /**
-     * This method is not supported.
-     */
-    @Override
-    public long getTimeToLive() throws JMSException {
-        return timeToLive;
-    }
-
-    /**
-     * Sets the minimum length of time in milliseconds that must elapse after a
-     * message is sent before the JMS provider may deliver the message to a consumer.
-     * <p>
-     * This must be a multiple of 1000, since SQS only supports delivery delays
-     * in seconds.
-     */
-    public void setDeliveryDelay(long deliveryDelay) {
-        if (deliveryDelay < 0 || deliveryDelay > MAXIMUM_DELIVERY_DELAY_MILLISECONDS) {
-            throw new IllegalArgumentException("Delivery delay must be non-negative and at most 15 minutes: " + deliveryDelay);
-        }
-        if (deliveryDelay % 1000 != 0) {
-            throw new IllegalArgumentException("Delivery delay must be a multiple of 1000: " + deliveryDelay);
-        }
-        this.deliveryDelaySeconds = (int) (deliveryDelay / 1000);
-    }
-
-    /**
-     * Gets the minimum length of time in milliseconds that must elapse after a
-     * message is sent before the JMS provider may deliver the message to a consumer.
-     */
-    public long getDeliveryDelay() {
-        return deliveryDelaySeconds * 1000;
-    }
 
     void checkClosed() throws IllegalStateException {
         if (closed.get()) {
@@ -565,10 +591,11 @@ public abstract class AbstractMessageProducer<SQS_CLIENT extends AmazonSQS> impl
         return sendMessageRequest;
     }
 
-    /*
-     * Unit Tests Utility Functions
-     */
+    //endregion
+
+    //region Unit Tests Utility Methods
     AtomicBoolean isClosed() {
         return closed;
     }
+    //endregion
 }

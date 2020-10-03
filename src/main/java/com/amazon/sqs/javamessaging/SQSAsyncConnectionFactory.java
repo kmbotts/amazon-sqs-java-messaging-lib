@@ -42,12 +42,14 @@ import javax.jms.QueueConnection;
 
 public class SQSAsyncConnectionFactory extends AbstractConnectionFactory<AmazonSQSAsync> {
 
-    protected SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSAsync amazonSQSAsync) {
+    protected SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration,
+                                        AmazonSQSAsync amazonSQSAsync) {
         super(providerConfiguration, amazonSQSAsync);
     }
 
     @Override
-    protected QueueConnection createConnection(AmazonSQSAsync amazonSQS, AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
+    protected QueueConnection createConnection(AmazonSQSAsync amazonSQS,
+                                               AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
         AmazonSQSAsyncMessagingClientWrapper clientWrapper = new AmazonSQSAsyncMessagingClientWrapper(amazonSQS, awsCredentialsProvider);
         return new SQSAsyncConnection(clientWrapper, getProviderConfiguration());
     }

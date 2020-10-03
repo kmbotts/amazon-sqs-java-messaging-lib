@@ -22,6 +22,8 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsSyncClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import lombok.AccessLevel;
+import lombok.Getter;
 
 import javax.jms.Connection;
 import javax.jms.JMSContext;
@@ -52,6 +54,7 @@ import java.util.function.Supplier;
  */
 
 public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> implements QueueConnectionFactory {
+    @Getter(value = AccessLevel.PROTECTED)
     private final ProviderConfiguration providerConfiguration;
     private final Supplier<SQS_CLIENT> sqsClientSupplier;
 
@@ -75,8 +78,10 @@ public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> im
         this.sqsClientSupplier = () -> client;
     }
 
-    protected abstract QueueConnection createConnection(SQS_CLIENT amazonSQS, AWSCredentialsProvider awsCredentialsProvider) throws JMSException;
+    protected abstract QueueConnection createConnection(SQS_CLIENT amazonSQS,
+                                                        AWSCredentialsProvider awsCredentialsProvider) throws JMSException;
 
+    //region QueueConnectionFactory Methods
     @Override
     public QueueConnection createQueueConnection() throws JMSException {
         try {
@@ -88,12 +93,21 @@ public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> im
     }
 
     @Override
-    public QueueConnection createQueueConnection(String awsAccessKeyId, String awsSecretKey) throws JMSException {
+    public QueueConnection createQueueConnection(String awsAccessKeyId,
+                                                 String awsSecretKey) throws JMSException {
+
         AWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKeyId, awsSecretKey);
         AWSCredentialsProvider awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
-        return createConnection(awsCredentialsProvider);
+        try {
+            SQS_CLIENT amazonSQS = sqsClientSupplier.get();
+            return createConnection(amazonSQS, awsCredentialsProvider);
+        } catch (Exception e) {
+            throw (JMSException) new JMSException("Error creating SQS client: " + e.getMessage()).initCause(e);
+        }
     }
+    //endregion
 
+    //region ConnectionFactory Methods
     @Override
     public Connection createConnection() throws JMSException {
         return createQueueConnection();
@@ -104,21 +118,7 @@ public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> im
         return createQueueConnection(awsAccessKeyId, awsSecretKey);
     }
 
-    private QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
-        try {
-            SQS_CLIENT amazonSQS = sqsClientSupplier.get();
-            return createConnection(amazonSQS, awsCredentialsProvider);
-        } catch (Exception e) {
-            throw (JMSException) new JMSException("Error creating SQS client: " + e.getMessage()).initCause(e);
-        }
-    }
-
-    public ProviderConfiguration getProviderConfiguration() {
-        return providerConfiguration;
-    }
-
-    //region UNSUPPORTED METHODS
-
+    //region Unsupported Methods
     /**
      * This method is not supported.
      */
@@ -150,5 +150,6 @@ public abstract class AbstractConnectionFactory<SQS_CLIENT extends AmazonSQS> im
     public JMSContext createContext(int sessionMode) {
         throw new JMSRuntimeException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
     }
+    //endregion
     //endregion
 }
