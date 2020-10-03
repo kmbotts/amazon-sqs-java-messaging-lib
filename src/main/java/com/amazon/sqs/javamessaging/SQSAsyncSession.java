@@ -46,13 +46,13 @@ import java.util.Set;
  * <li>Transactions</li>
  * </ul>
  */
-public class SQSSession extends AbstractSession {
+public class SQSAsyncSession extends AbstractSession {
 
     @Builder
-    SQSSession(AbstractConnection connection,
-               AcknowledgeMode acknowledgeMode,
-               Set<AbstractMessageConsumer> messageConsumers,
-               Set<AbstractMessageProducer> messageProducers) throws JMSException {
+    SQSAsyncSession(AbstractConnection connection,
+                    AcknowledgeMode acknowledgeMode,
+                    Set<AbstractMessageConsumer> messageConsumers,
+                    Set<AbstractMessageProducer> messageProducers) throws JMSException {
 
         super(connection, acknowledgeMode, messageConsumers, messageProducers);
     }
@@ -60,7 +60,7 @@ public class SQSSession extends AbstractSession {
     @Override
     protected AbstractMessageProducer createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
                                                             Destination destination) {
-        return SQSMessageProducer.builder()
+        return SQSAsyncMessageProducer.builder()
                 .sqsClientWrapper(sqsClientWrapper)
                 .destination(destination)
                 .session(this)

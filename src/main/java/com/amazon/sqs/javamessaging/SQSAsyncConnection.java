@@ -51,11 +51,8 @@ package com.amazon.sqs.javamessaging;
  */
 public class SQSAsyncConnection extends AbstractConnection {
 
-    SQSAsyncConnection(AmazonSQSAsyncMessagingClientWrapper amazonSQSClientJMSWrapper, int numberOfMessagesToPrefetch) {
-        super(amazonSQSClientJMSWrapper, numberOfMessagesToPrefetch);
-    }
-
-    SQSAsyncConnection(AmazonSQSAsyncMessagingClientWrapper amazonSQSClientJMSWrapper, ProviderConfiguration providerConfiguration) {
+    SQSAsyncConnection(AmazonSQSAsyncMessagingClientWrapper amazonSQSClientJMSWrapper,
+                       ProviderConfiguration providerConfiguration) {
         super(amazonSQSClientJMSWrapper, providerConfiguration);
     }
 }

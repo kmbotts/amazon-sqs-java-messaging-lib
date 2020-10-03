@@ -30,7 +30,7 @@ public class SQSConnectionFactoryTest {
 
     @Test
     public void canCreateFactoryWithDefaultProviderSettings() throws JMSException {
-        SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration());
+        SQSConnectionFactory factory = new SQSConnectionFactory(ProviderConfiguration.DEFAULT);
         //cannot actually attempt to create a connection because the default client builder depends on environment settings or instance configuration to be present
         //which we cannot guarantee on the builder fleet
     }
@@ -38,7 +38,7 @@ public class SQSConnectionFactoryTest {
     @Test
     public void canCreateFactoryWithCustomClient() throws JMSException {
         AmazonSQS client = mock(AmazonSQS.class);
-        SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), client);
+        SQSConnectionFactory factory = new SQSConnectionFactory(ProviderConfiguration.DEFAULT, client);
         SQSConnection connection = (SQSConnection) factory.createConnection();
         connection.close();
     }
@@ -46,7 +46,7 @@ public class SQSConnectionFactoryTest {
     @Test
     public void factoryWithCustomClientWillUseTheSameClient() throws JMSException {
         AmazonSQS client = mock(AmazonSQS.class);
-        SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), client);
+        SQSConnectionFactory factory = new SQSConnectionFactory(ProviderConfiguration.DEFAULT, client);
         SQSConnection connection1 = (SQSConnection) factory.createConnection();
         SQSConnection connection2 = (SQSConnection) factory.createConnection();
 
@@ -61,7 +61,7 @@ public class SQSConnectionFactoryTest {
     @Test
     public void canCreateFactoryWithCustomBuilder() throws JMSException {
         AmazonSQSClientBuilder clientBuilder = AmazonSQSClientBuilder.standard().withRegion(Regions.US_EAST_1);
-        SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), clientBuilder);
+        SQSConnectionFactory factory = new SQSConnectionFactory(ProviderConfiguration.DEFAULT, clientBuilder);
         SQSConnection connection = (SQSConnection) factory.createConnection();
         connection.close();
     }
@@ -69,7 +69,7 @@ public class SQSConnectionFactoryTest {
     @Test
     public void factoryWithCustomBuilderWillCreateNewClient() throws JMSException {
         AmazonSQSClientBuilder clientBuilder = AmazonSQSClientBuilder.standard().withRegion(Regions.US_EAST_1);
-        SQSConnectionFactory factory = new SQSConnectionFactory(new ProviderConfiguration(), clientBuilder);
+        SQSConnectionFactory factory = new SQSConnectionFactory(ProviderConfiguration.DEFAULT, clientBuilder);
         SQSConnection connection1 = (SQSConnection) factory.createConnection();
         SQSConnection connection2 = (SQSConnection) factory.createConnection();
 

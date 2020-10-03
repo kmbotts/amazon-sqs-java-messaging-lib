@@ -15,6 +15,7 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
+import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -235,7 +236,7 @@ public abstract class AbstractMessageConsumer implements QueueReceiver {
      */
     @Override
     public String getMessageSelector() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**

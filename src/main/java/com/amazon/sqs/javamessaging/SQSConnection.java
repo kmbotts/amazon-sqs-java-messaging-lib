@@ -14,6 +14,9 @@
  */
 package com.amazon.sqs.javamessaging;
 
+import lombok.AccessLevel;
+import lombok.Builder;
+
 /**
  * This is a logical connection entity, which encapsulates the logic to create
  * sessions.
@@ -51,11 +54,9 @@ package com.amazon.sqs.javamessaging;
  */
 public class SQSConnection extends AbstractConnection {
 
-    SQSConnection(AmazonSQSMessagingClientWrapper amazonSQSClientJMSWrapper, int numberOfMessagesToPrefetch) {
-        super(amazonSQSClientJMSWrapper, numberOfMessagesToPrefetch);
-    }
-
-    SQSConnection(AmazonSQSMessagingClientWrapper amazonSQSClientJMSWrapper, ProviderConfiguration providerConfiguration) {
-        super(amazonSQSClientJMSWrapper, providerConfiguration);
+    @Builder(access = AccessLevel.PACKAGE)
+    SQSConnection(AmazonSQSMessagingClientWrapper clientWrapper,
+                  ProviderConfiguration providerConfiguration) {
+        super(clientWrapper, providerConfiguration);
     }
 }

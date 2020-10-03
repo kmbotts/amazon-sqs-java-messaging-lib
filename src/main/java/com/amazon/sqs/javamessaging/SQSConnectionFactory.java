@@ -21,6 +21,8 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import javax.jms.JMSException;
 import javax.jms.QueueConnection;
 
+import java.util.function.Supplier;
+
 /**
  * A ConnectionFactory object encapsulates a set of connection configuration
  * parameters for <code>AmazonSQSClient</code> as well as setting
@@ -41,24 +43,32 @@ import javax.jms.QueueConnection;
  */
 public class SQSConnectionFactory extends AbstractConnectionFactory {
 
-    private final AmazonSQS amazonSQS;
+    private final Supplier<AmazonSQS> amazonSQSSupplier;
 
     public SQSConnectionFactory(ProviderConfiguration providerConfiguration) {
         this(providerConfiguration, AmazonSQSClientBuilder.standard());
     }
 
     public SQSConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSClientBuilder builder) {
-        this(providerConfiguration, builder.build());
+        this(providerConfiguration, builder::build);
+    }
+
+    public SQSConnectionFactory(ProviderConfiguration providerConfiguration, Supplier<AmazonSQS> amazonSQSSupplier) {
+        super(providerConfiguration);
+        this.amazonSQSSupplier = amazonSQSSupplier;
     }
 
     public SQSConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQS amazonSQS) {
         super(providerConfiguration);
-        this.amazonSQS = amazonSQS;
+        this.amazonSQSSupplier = () -> amazonSQS;
     }
 
     @Override
     protected QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
-        AmazonSQSMessagingClientWrapper clientWrapper = new AmazonSQSMessagingClientWrapper(amazonSQS, awsCredentialsProvider);
-        return new SQSConnection(clientWrapper, getProviderConfiguration());
+        AmazonSQSMessagingClientWrapper clientWrapper = new AmazonSQSMessagingClientWrapper(amazonSQSSupplier.get(), awsCredentialsProvider);
+        return SQSConnection.builder()
+                .clientWrapper(clientWrapper)
+                .providerConfiguration(getProviderConfiguration())
+                .build();
     }
 }

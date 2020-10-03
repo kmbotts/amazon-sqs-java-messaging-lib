@@ -97,7 +97,7 @@ public class SQSMessageProducerTest {
 
         try {
             producer.checkIfDestinationAlreadySet();
-        } catch (UnsupportedOperationException uoe) {
+        } catch (IllegalStateException uoe) {
             assertEquals("MessageProducer already specified a destination at creation time.", uoe.getMessage());
         }
 
@@ -607,7 +607,7 @@ public class SQSMessageProducerTest {
         try {
             producer.send(destination, msg);
             fail();
-        } catch (UnsupportedOperationException ide) {
+        } catch (IllegalStateException ide) {
             // expected
         }
 

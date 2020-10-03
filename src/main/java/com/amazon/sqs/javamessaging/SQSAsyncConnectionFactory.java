@@ -19,8 +19,9 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQSAsync;
 import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
 
-import javax.jms.JMSException;
 import javax.jms.QueueConnection;
+
+import java.util.function.Supplier;
 
 /**
  * A ConnectionFactory object encapsulates a set of connection configuration
@@ -43,24 +44,29 @@ import javax.jms.QueueConnection;
 
 public class SQSAsyncConnectionFactory extends AbstractConnectionFactory {
 
-    private final AmazonSQSAsync amazonSQSAsync;
+    private final Supplier<AmazonSQSAsync> amazonSQSAsyncSupplier;
 
     public SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration) {
         this(providerConfiguration, AmazonSQSAsyncClientBuilder.standard());
     }
 
     public SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSAsyncClientBuilder builder) {
-        this(providerConfiguration, builder.build());
+        this(providerConfiguration, builder::build);
+    }
+
+    public SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration, Supplier<AmazonSQSAsync> amazonSQSAsyncSupplier) {
+        super(providerConfiguration);
+        this.amazonSQSAsyncSupplier = amazonSQSAsyncSupplier;
     }
 
     public SQSAsyncConnectionFactory(ProviderConfiguration providerConfiguration, AmazonSQSAsync amazonSQSAsync) {
         super(providerConfiguration);
-        this.amazonSQSAsync = amazonSQSAsync;
+        this.amazonSQSAsyncSupplier = () -> amazonSQSAsync;
     }
 
     @Override
-    protected QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException {
-        AmazonSQSAsyncMessagingClientWrapper clientWrapper = new AmazonSQSAsyncMessagingClientWrapper(amazonSQSAsync, awsCredentialsProvider);
+    protected QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) {
+        AmazonSQSAsyncMessagingClientWrapper clientWrapper = new AmazonSQSAsyncMessagingClientWrapper(amazonSQSAsyncSupplier.get(), awsCredentialsProvider);
         return new SQSAsyncConnection(clientWrapper, getProviderConfiguration());
     }
 }

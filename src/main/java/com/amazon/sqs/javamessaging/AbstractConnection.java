@@ -15,6 +15,7 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
+import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -126,14 +127,9 @@ public abstract class AbstractConnection implements QueueConnection {
 
     private final Set<Session> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    protected AbstractConnection(AbstractSQSClientWrapper amazonSQSClientJMSWrapper,
-                                 int numberOfMessagesToPrefetch) {
-        this(amazonSQSClientJMSWrapper, new ProviderConfiguration().withNumberOfMessagesToPrefetch(numberOfMessagesToPrefetch));
-    }
-
-    protected AbstractConnection(AbstractSQSClientWrapper amazonSQSClientJMSWrapper,
+    protected AbstractConnection(AbstractSQSClientWrapper sqsClientWrapper,
                                  ProviderConfiguration providerConfiguration) {
-        sqsClientWrapper = amazonSQSClientJMSWrapper;
+        this.sqsClientWrapper = sqsClientWrapper;
         this.numberOfMessagesToPrefetch = providerConfiguration.getNumberOfMessagesToPrefetch();
         this.sessionThreadFactory = providerConfiguration.getSessionThreadFactory();
         this.consumerPrefetchThreadFactory = providerConfiguration.getConsumerPrefetchThreadFactory();
@@ -435,6 +431,8 @@ public abstract class AbstractConnection implements QueueConnection {
                     sessions.clear();
                 } finally {
                     closed = true;
+                    // Shutdown the underlying client
+                    sqsClientWrapper.shutdown();
                     stateLock.notifyAll();
                 }
             }
@@ -461,7 +459,7 @@ public abstract class AbstractConnection implements QueueConnection {
     @Override
     public ConnectionConsumer createConnectionConsumer(Destination destination, String messageSelector, ServerSessionPool sessionPool,
                                                        int maxMessages) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -470,7 +468,7 @@ public abstract class AbstractConnection implements QueueConnection {
     @Override
     public ConnectionConsumer createDurableConnectionConsumer(Topic topic, String subscriptionName, String messageSelector,
                                                               ServerSessionPool sessionPool, int maxMessages) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -478,7 +476,7 @@ public abstract class AbstractConnection implements QueueConnection {
      */
     @Override
     public ConnectionConsumer createSharedConnectionConsumer(Topic topic, String subscriptionName, String messageSelector, ServerSessionPool sessionPool, int maxMessages) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -486,7 +484,7 @@ public abstract class AbstractConnection implements QueueConnection {
      */
     @Override
     public ConnectionConsumer createSharedDurableConnectionConsumer(Topic topic, String subscriptionName, String messageSelector, ServerSessionPool sessionPool, int maxMessages) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -495,7 +493,7 @@ public abstract class AbstractConnection implements QueueConnection {
     @Override
     public ConnectionConsumer createConnectionConsumer(Queue queue, String messageSelector, ServerSessionPool sessionPool, int maxMessages)
             throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
     //endregion
     //endregion

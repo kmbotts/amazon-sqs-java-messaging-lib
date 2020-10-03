@@ -14,8 +14,13 @@
  */
 package com.amazon.sqs.javamessaging;
 
+import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQS;
+
+import javax.jms.JMSException;
+
+import java.util.Optional;
 
 /**
  * This is a JMS Wrapper of <code>AmazonSQSClient</code>. This class changes all
@@ -26,13 +31,13 @@ public class AmazonSQSMessagingClientWrapper extends AbstractSQSClientWrapper {
 
     private final AmazonSQS amazonSQS;
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS) {
+    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS) throws JMSException {
         this(amazonSQS, null);
     }
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS, AWSCredentialsProvider credentialsProvider) {
+    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS, AWSCredentialsProvider credentialsProvider) throws JMSException {
         super(credentialsProvider);
-        this.amazonSQS = amazonSQS;
+        this.amazonSQS = Optional.ofNullable(amazonSQS).orElseThrow(JMSExceptionUtil.NullAmazonSqsClient());
     }
 
     @Override

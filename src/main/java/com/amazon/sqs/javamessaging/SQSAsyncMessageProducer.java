@@ -17,6 +17,8 @@ package com.amazon.sqs.javamessaging;
 import com.amazon.sqs.javamessaging.acknowledge.SendMessageAsyncHandler;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import lombok.AccessLevel;
+import lombok.Builder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -39,10 +41,11 @@ import javax.jms.Queue;
 public class SQSAsyncMessageProducer extends AbstractMessageProducer {
     private static final Log LOG = LogFactory.getLog(SQSAsyncMessageProducer.class);
 
-    SQSAsyncMessageProducer(AbstractSQSClientWrapper sqsAsyncMessagingClientWrapper,
-                            AbstractSession parentSQSSession,
-                            Destination destination) throws JMSException {
-        super(sqsAsyncMessagingClientWrapper, parentSQSSession, destination);
+    @Builder(access = AccessLevel.PACKAGE)
+    SQSAsyncMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
+                            AbstractSession session,
+                            Destination destination) {
+        super(sqsClientWrapper, session, destination);
     }
 
     @Override
@@ -53,7 +56,7 @@ public class SQSAsyncMessageProducer extends AbstractMessageProducer {
     @Override
     protected void sendMessageInternal(Queue queue, Message message, CompletionListener listener) throws JMSException {
         checkClosed();
-        SQSQueueDestination sqsQueueDestination = checkInvalidDestination(queue);
+        SQSQueueDestination sqsQueueDestination = (SQSQueueDestination) queue;
         SQSMessage sqsMessage = checkMessageFormat(message);
 
         SendMessageRequest sendMessageRequest = getSendMessageRequest(sqsQueueDestination, message);

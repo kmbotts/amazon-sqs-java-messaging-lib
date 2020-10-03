@@ -18,6 +18,7 @@ import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch;
 import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
 import com.amazon.sqs.javamessaging.SQSQueueDestination;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
+import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 
 import javax.jms.Destination;
@@ -1183,12 +1184,12 @@ public class SQSMessage implements Message {
 
     @Override
     public long getJMSDeliveryTime() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     @Override
     public void setJMSDeliveryTime(long deliveryTime) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     @Override

@@ -22,6 +22,7 @@ import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
 import com.amazon.sqs.javamessaging.message.SQSBytesMessage;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
+import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
 import com.amazon.sqs.javamessaging.util.SQSMessagingClientThreadFactory;
 import lombok.AccessLevel;
@@ -209,8 +210,7 @@ public abstract class AbstractSession implements QueueSession {
     }
 
     protected abstract AbstractMessageProducer createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
-                                                                     AbstractSession session,
-                                                                     Destination destination) throws JMSException;
+                                                                     Destination destination);
 
     //region QueueSession Methods
     //region Supported Methods
@@ -274,7 +274,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public QueueBrowser createBrowser(Queue queue) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -282,7 +282,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public QueueBrowser createBrowser(Queue queue, String messageSelector) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -290,7 +290,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public TemporaryQueue createTemporaryQueue() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
     //endregion
     //endregion
@@ -432,13 +432,13 @@ public abstract class AbstractSession implements QueueSession {
     @Override
     public MessageProducer createProducer(Destination destination) throws JMSException {
         checkClosed();
-        if (destination != null && !(destination instanceof SQSQueueDestination)) {
-            throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
+        if (!(destination instanceof SQSQueueDestination)) {
+            throw JMSExceptionUtil.DestinationTypeMismatch().get();
         }
         AbstractMessageProducer messageProducer;
         synchronized (stateLock) {
             checkClosing();
-            messageProducer = createMessageProducer(sqsClientWrapper, this, destination);
+            messageProducer = createMessageProducer(sqsClientWrapper, destination);
             messageProducers.add(messageProducer);
         }
         return messageProducer;
@@ -456,7 +456,7 @@ public abstract class AbstractSession implements QueueSession {
     public MessageConsumer createConsumer(Destination destination) throws JMSException {
         checkClosed();
         if (!(destination instanceof SQSQueueDestination)) {
-            throw new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
+            throw JMSExceptionUtil.DestinationTypeMismatch().get();
         }
         AbstractMessageConsumer messageConsumer;
         synchronized (stateLock) {
@@ -483,7 +483,7 @@ public abstract class AbstractSession implements QueueSession {
     @Override
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
         if (messageSelector != null) {
-            throw new JMSException("SQSSession does not support MessageSelector. This should be null.");
+            throw JMSExceptionUtil.MessageSelectorUnsupported().get();
         }
         return createConsumer(destination);
     }
@@ -502,7 +502,7 @@ public abstract class AbstractSession implements QueueSession {
     @Override
     public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean NoLocal) throws JMSException {
         if (messageSelector != null) {
-            throw new JMSException("SQSSession does not support MessageSelector. This should be null.");
+            throw JMSExceptionUtil.MessageSelectorUnsupported().get();
         }
         return createConsumer(destination);
     }
@@ -517,7 +517,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public MapMessage createMapMessage() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -527,7 +527,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public Message createMessage() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -535,7 +535,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public StreamMessage createStreamMessage() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -552,7 +552,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public void commit() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -560,7 +560,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public void rollback() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -568,7 +568,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public MessageListener getMessageListener() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -576,38 +576,38 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public void setMessageListener(MessageListener listener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     @Override
     public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     @Override
     public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName, String messageSelector) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
 
     @Override
     public MessageConsumer createDurableConsumer(Topic topic, String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     @Override
     public MessageConsumer createDurableConsumer(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     @Override
     public MessageConsumer createSharedDurableConsumer(Topic topic, String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     @Override
     public MessageConsumer createSharedDurableConsumer(Topic topic, String name, String messageSelector) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -615,7 +615,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public Topic createTopic(String topicName) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -623,7 +623,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -631,7 +631,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -639,7 +639,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public TemporaryTopic createTemporaryTopic() throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -647,7 +647,7 @@ public abstract class AbstractSession implements QueueSession {
      */
     @Override
     public void unsubscribe(String name) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
     //endregion
     //endregion
@@ -667,7 +667,6 @@ public abstract class AbstractSession implements QueueSession {
         }
         return queueToGroupsMapping;
     }
-
 
     /**
      * @return True if the current thread is the callback thread
@@ -750,7 +749,7 @@ public abstract class AbstractSession implements QueueSession {
         }
     }
 
-    private AbstractMessageConsumer createSQSMessageConsumer(SQSQueueDestination destination) {
+    AbstractMessageConsumer createSQSMessageConsumer(SQSQueueDestination destination) {
         return SQSMessageConsumer.builder()
                 .connection(getDelegateConnection())
                 .session(this)

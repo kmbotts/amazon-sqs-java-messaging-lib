@@ -21,6 +21,8 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import lombok.AccessLevel;
 import lombok.Getter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import javax.jms.Connection;
 import javax.jms.JMSContext;
@@ -49,6 +51,8 @@ import javax.jms.QueueConnectionFactory;
  */
 
 public abstract class AbstractConnectionFactory implements QueueConnectionFactory {
+    private static final Log LOG = LogFactory.getLog(AbstractConnectionFactory.class);
+
     @Getter(value = AccessLevel.PROTECTED)
     private final ProviderConfiguration providerConfiguration;
 
@@ -67,7 +71,8 @@ public abstract class AbstractConnectionFactory implements QueueConnectionFactor
         try {
             return createConnection(null);
         } catch (RuntimeException e) {
-            throw (JMSException) new JMSException("Error creating SQS client: " + e.getMessage()).initCause(e);
+            LOG.fatal("Error creating Connection", e);
+            throw new JMSException("Error creating Connection: " + e.getMessage());
         }
     }
 

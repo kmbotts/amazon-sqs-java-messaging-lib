@@ -19,6 +19,7 @@ import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazon.sqs.javamessaging.message.SQSMessage.JMSMessagePropertyValue;
 import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
 import com.amazon.sqs.javamessaging.message.SQSTextMessage;
+import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.util.Base64;
@@ -90,15 +91,15 @@ public abstract class AbstractMessageProducer implements QueueSender {
     @Getter(value = AccessLevel.PACKAGE)
     private final AbstractSQSClientWrapper sqsClientWrapper;
 
-    private final AbstractSession parentSQSSession;
+    private final AbstractSession delegateSession;
 
     private final SQSQueueDestination sqsDestination;
 
     AbstractMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
-                            AbstractSession parentSQSSession,
-                            Destination destination) throws JMSException {
+                            AbstractSession delegateSession,
+                            Destination destination) {
         this.sqsClientWrapper = sqsClientWrapper;
-        this.parentSQSSession = parentSQSSession;
+        this.delegateSession = delegateSession;
         this.sqsDestination = (SQSQueueDestination) destination;
     }
 
@@ -164,6 +165,7 @@ public abstract class AbstractMessageProducer implements QueueSender {
      */
     @Override
     public void send(Queue queue, Message message) throws JMSException {
+        checkInvalidDestination(queue);
         checkIfDestinationAlreadySet();
         sendMessageInternal(queue, message, null);
     }
@@ -212,7 +214,7 @@ public abstract class AbstractMessageProducer implements QueueSender {
     public void close() throws JMSException {
 
         if (closed.compareAndSet(false, true)) {
-            parentSQSSession.removeProducer(this);
+            delegateSession.removeProducer(this);
         }
     }
 
@@ -377,7 +379,7 @@ public abstract class AbstractMessageProducer implements QueueSender {
      */
     @Override
     public void send(Message message, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -385,7 +387,7 @@ public abstract class AbstractMessageProducer implements QueueSender {
      */
     @Override
     public void send(Message message, int deliveryMode, int priority, long timeToLive, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -393,7 +395,7 @@ public abstract class AbstractMessageProducer implements QueueSender {
      */
     @Override
     public void send(Destination destination, Message message, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
     /**
@@ -401,7 +403,7 @@ public abstract class AbstractMessageProducer implements QueueSender {
      */
     @Override
     public void send(Destination destination, Message message, int deliveryMode, int priority, long timeToLive, CompletionListener completionListener) throws JMSException {
-        throw new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
     //endregion
 
@@ -514,19 +516,17 @@ public abstract class AbstractMessageProducer implements QueueSender {
         }
     }
 
-    void checkIfDestinationAlreadySet() {
+    void checkIfDestinationAlreadySet() throws IllegalStateException {
         if (sqsDestination != null) {
-            throw new UnsupportedOperationException(
-                    "MessageProducer already specified a destination at creation time.");
+            throw JMSExceptionUtil.DestinationAlreadySet().get();
         }
     }
 
-    SQSQueueDestination checkInvalidDestination(Queue queue) throws InvalidDestinationException {
+    void checkInvalidDestination(Queue queue) throws InvalidDestinationException {
         if (!(queue instanceof SQSQueueDestination)) {
             throw new InvalidDestinationException(
                     "Incompatible implementation of Queue. Please use SQSQueueDestination implementation.");
         }
-        return (SQSQueueDestination) queue;
     }
 
     SQSMessage checkMessageFormat(Message message) throws MessageFormatException {

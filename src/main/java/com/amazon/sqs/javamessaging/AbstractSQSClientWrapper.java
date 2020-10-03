@@ -67,6 +67,10 @@ public abstract class AbstractSQSClientWrapper {
      */
     public abstract AmazonSQS getClient();
 
+    public void shutdown() {
+        getClient().shutdown();
+    }
+
     /**
      * Calls <code>deleteMessage</code> and wraps <code>AmazonClientException</code>. This is used to
      * acknowledge single messages, so that they can be deleted from SQS queue.
