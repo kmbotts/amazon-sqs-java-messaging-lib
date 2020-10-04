@@ -53,7 +53,7 @@ import java.util.Map.Entry;
  * JMSXDeliveryCount reserved property is supported and set based on the
  * approximate receive count observed on the SQS side.
  */
-class SQSMessage implements Message {
+abstract class SQSMessage implements Message {
 
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 

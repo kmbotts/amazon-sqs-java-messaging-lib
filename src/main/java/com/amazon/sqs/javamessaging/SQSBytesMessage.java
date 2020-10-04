@@ -40,7 +40,7 @@ import java.util.Arrays;
  * <code>java.io.DataInputStream</code> and
  * <code>java.io.DataOutputStream</code>.
  */
-public class SQSBytesMessage extends SQSMessage implements BytesMessage {
+class SQSBytesMessage extends SQSMessage implements BytesMessage {
     private static final Log LOG = LogFactory.getLog(SQSBytesMessage.class);
 
     private byte[] bytes;

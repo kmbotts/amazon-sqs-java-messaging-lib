@@ -70,7 +70,7 @@ public class SQSMessageTest {
      */
     @Test
     public void testProperty() throws JMSException {
-        when(mockSQSSession.createMessage()).thenReturn(new SQSMessage());
+        when(mockSQSSession.createMessage()).thenReturn(new TestSQSMessage());
         Message message = mockSQSSession.createMessage();
 
         message.setBooleanProperty("myTrueBoolean", true);
@@ -170,7 +170,7 @@ public class SQSMessageTest {
      */
     @Test
     public void testCheckPropertyWritePermissions() throws JMSException {
-        SQSMessage msg = new SQSMessage();
+        SQSMessage msg = new TestSQSMessage();
 
 
         msg.checkBodyWritePermissions();
@@ -199,7 +199,7 @@ public class SQSMessageTest {
      */
     @Test
     public void testGetPrimitiveProperty() throws JMSException {
-        SQSMessage msg = spy(new SQSMessage());
+        SQSMessage msg = spy(new TestSQSMessage());
         when(msg.getObjectProperty("testProperty"))
                 .thenReturn(null);
 
@@ -236,7 +236,7 @@ public class SQSMessageTest {
      */
     @Test
     public void testSetObjectProperty() throws JMSException {
-        SQSMessage msg = spy(new SQSMessage());
+        SQSMessage msg = spy(new TestSQSMessage());
 
         try {
             msg.setObjectProperty(null, 1);
@@ -345,7 +345,7 @@ public class SQSMessageTest {
                 .withMessageId("messageId")
                 .withReceiptHandle("ReceiptHandle");
 
-        SQSMessage message = new SQSMessage(ack, "QueueUrl", sqsMessage);
+        SQSMessage message = new TestSQSMessage(ack, "QueueUrl", sqsMessage);
 
         Assert.assertTrue(message.propertyExists(myTrueBoolean));
         Assert.assertEquals(message.getObjectProperty(myTrueBoolean), true);
@@ -433,5 +433,14 @@ public class SQSMessageTest {
 
         propertyNames = message.getPropertyNames();
         assertFalse(propertyNames.hasMoreElements());
+    }
+
+    static class TestSQSMessage extends SQSMessage {
+        public TestSQSMessage() {
+        }
+
+        public TestSQSMessage(Acknowledger acknowledger, String queueUrl, com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
+            super(acknowledger, queueUrl, sqsMessage);
+        }
     }
 }
