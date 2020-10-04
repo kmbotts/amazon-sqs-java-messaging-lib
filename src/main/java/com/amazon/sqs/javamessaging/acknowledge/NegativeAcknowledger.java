@@ -15,7 +15,7 @@
 package com.amazon.sqs.javamessaging.acknowledge;
 
 import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch.MessageManager;
+import com.amazon.sqs.javamessaging.FetchedMessage;
 import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
@@ -54,7 +54,7 @@ public class NegativeAcknowledger extends BulkSQSOperation {
      * @param queueUrl     The queueUrl of the messages, which they received from.
      * @throws JMSException If <code>action</code> throws.
      */
-    public void bulkAction(Deque<MessageManager> messageQueue, String queueUrl) throws JMSException {
+    public void bulkAction(Deque<FetchedMessage> messageQueue, String queueUrl) throws JMSException {
         List<String> receiptHandles = new ArrayList<>();
         while (!messageQueue.isEmpty()) {
             receiptHandles.add(((SQSMessage) (messageQueue.pollFirst().getMessage())).getReceiptHandle());

@@ -14,23 +14,20 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.PrefetchManager;
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch;
-import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
 import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import javax.jms.JMSException;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -72,7 +69,7 @@ public class NegativeAcknowledgerTest extends AcknowledgerCommon {
         receiptHandles.add("r1");
         receiptHandles.add("r2");
 
-        ArrayDeque<SQSMessageConsumerPrefetch.MessageManager> messageQueue = addSQSMessageToQueue(3);
+        ArrayDeque<FetchedMessage> messageQueue = addSQSMessageToQueue(3);
 
         /*
          * Nack the messages in bulk actions
@@ -94,7 +91,7 @@ public class NegativeAcknowledgerTest extends AcknowledgerCommon {
         /*
          * Set up the message queue
          */
-        ArrayDeque<SQSMessageConsumerPrefetch.MessageManager> messageQueue = addSQSMessageToQueue(13);
+        ArrayDeque<FetchedMessage> messageQueue = addSQSMessageToQueue(13);
 
         /*
          * Nack the messages in bulk actions
@@ -152,16 +149,16 @@ public class NegativeAcknowledgerTest extends AcknowledgerCommon {
     /**
      * Utility function
      */
-    private ArrayDeque<SQSMessageConsumerPrefetch.MessageManager> addSQSMessageToQueue(int count) {
+    private ArrayDeque<FetchedMessage> addSQSMessageToQueue(int count) {
 
-        ArrayDeque<SQSMessageConsumerPrefetch.MessageManager> messageQueue =
-                new ArrayDeque<SQSMessageConsumerPrefetch.MessageManager>();
+        ArrayDeque<FetchedMessage> messageQueue =
+                new ArrayDeque<FetchedMessage>();
 
         PrefetchManager prefetchManager = mock(PrefetchManager.class);
         for (int i = 0; i < count; ++i) {
             SQSMessage msg = mock(SQSMessage.class);
             when(msg.getReceiptHandle()).thenReturn("r" + i);
-            messageQueue.add(new SQSMessageConsumerPrefetch.MessageManager(prefetchManager, msg));
+            messageQueue.add(new FetchedMessage(prefetchManager, msg));
         }
 
         return messageQueue;

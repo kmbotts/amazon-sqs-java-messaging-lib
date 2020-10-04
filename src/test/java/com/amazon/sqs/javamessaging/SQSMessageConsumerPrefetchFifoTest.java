@@ -182,14 +182,14 @@ public class SQSMessageConsumerPrefetchFifoTest {
         // Ensure message queue was filled with expected messages
         assertEquals(numMessages, consumerPrefetch.messageQueue.size());
         int index = 0;
-        for (SQSMessageConsumerPrefetch.MessageManager messageManager : consumerPrefetch.messageQueue) {
+        for (FetchedMessage fetchedMessage : consumerPrefetch.messageQueue) {
             com.amazonaws.services.sqs.model.Message mockedMessage = messages.get(index);
-            SQSMessage sqsMessage = (SQSMessage)messageManager.getMessage();
+            SQSMessage sqsMessage = (SQSMessage) fetchedMessage.getMessage();
             assertEquals("Receipt handle is the same", mockedMessage.getReceiptHandle(), sqsMessage.getReceiptHandle());
             assertEquals("Group id is the same", mockedMessage.getAttributes().get(SQSMessagingClientConstants.MESSAGE_GROUP_ID), sqsMessage.getStringProperty(SQSMessagingClientConstants.JMSX_GROUP_ID));
             assertEquals("Sequence number is the same", mockedMessage.getAttributes().get(SQSMessagingClientConstants.SEQUENCE_NUMBER), sqsMessage.getStringProperty(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER));
             assertEquals("Deduplication id is the same", mockedMessage.getAttributes().get(SQSMessagingClientConstants.MESSAGE_DEDUPLICATION_ID), sqsMessage.getStringProperty(SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID));
-            
+
             index++;
         }
     }

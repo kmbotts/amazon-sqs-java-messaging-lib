@@ -78,7 +78,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
      * Internal buffer of Messages. The size of queue is MIN_BATCH by default
      * and it can be changed by user.
      */
-    protected final Deque<MessageManager> messageQueue;
+    protected final Deque<FetchedMessage> messageQueue;
 
     private final Acknowledger acknowledger;
 
@@ -175,7 +175,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
                 return;
             }
 
-            List<MessageManager> allPrefetchedMessages = new ArrayList<>(messageQueue);
+            List<FetchedMessage> allPrefetchedMessages = new ArrayList<>(messageQueue);
             callbackScheduler.scheduleCallBacks(messageListener, allPrefetchedMessages);
             messageQueue.clear();
 
@@ -274,11 +274,11 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
      */
     protected void processReceivedMessages(List<Message> messages) {
         List<String> nackMessages = new ArrayList<>();
-        List<MessageManager> messageManagers = new ArrayList<>();
+        List<FetchedMessage> fetchedMessages = new ArrayList<>();
         for (Message message : messages) {
             try {
                 javax.jms.Message jmsMessage = convertToJMSMessage(message);
-                messageManagers.add(new MessageManager(this, jmsMessage));
+                fetchedMessages.add(new FetchedMessage(this, jmsMessage));
             } catch (JMSException e) {
                 LOG.warn("Caught exception while converting received messages", e);
                 nackMessages.add(message.getReceiptHandle());
@@ -287,12 +287,12 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
 
         synchronized (stateLock) {
             if (messageListener != null) {
-                callbackScheduler.scheduleCallBacks(messageListener, messageManagers);
+                callbackScheduler.scheduleCallBacks(messageListener, fetchedMessages);
             } else {
-                messageQueue.addAll(messageManagers);
+                messageQueue.addAll(fetchedMessages);
             }
 
-            messagesPrefetched += messageManagers.size();
+            messagesPrefetched += fetchedMessages.size();
             notifyStateChange();
         }
 
@@ -451,26 +451,6 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
         }
     }
 
-    public static class MessageManager {
-
-        private final PrefetchManager prefetchManager;
-
-        private final javax.jms.Message message;
-
-        public MessageManager(PrefetchManager prefetchManager, javax.jms.Message message) {
-            this.prefetchManager = prefetchManager;
-            this.message = message;
-        }
-
-        public PrefetchManager getPrefetchManager() {
-            return prefetchManager;
-        }
-
-        public javax.jms.Message getMessage() {
-            return message;
-        }
-    }
-
     javax.jms.Message receive() throws JMSException {
         return receive(0);
     }
@@ -484,7 +464,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
             timeout = 0;
         }
 
-        MessageManager messageManager = null;
+        FetchedMessage fetchedMessage = null;
         synchronized (stateLock) {
             requestMessage();
             try {
@@ -506,14 +486,14 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
                         return null;
                     }
                 }
-                messageManager = messageQueue.pollFirst();
+                fetchedMessage = messageQueue.pollFirst();
             } finally {
-                if (messageManager == null) {
+                if (fetchedMessage == null) {
                     unrequestMessage();
                 }
             }
         }
-        return messageHandler(messageManager);
+        return messageHandler(fetchedMessage);
     }
 
     private long getWaitTime(long timeout, long startTime) {
@@ -531,7 +511,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
             return null;
         }
 
-        MessageManager messageManager;
+        FetchedMessage fetchedMessage;
         synchronized (stateLock) {
             if (messageQueue.isEmpty() && numberOfMessagesToPrefetch == 0) {
                 List<Message> messages = getMessages(1, 0);
@@ -539,12 +519,12 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
                     processReceivedMessages(messages);
                 }
             }
-            messageManager = messageQueue.pollFirst();
+            fetchedMessage = messageQueue.pollFirst();
         }
-        if (messageManager != null) {
+        if (fetchedMessage != null) {
             requestMessage();
         }
-        return messageHandler(messageManager);
+        return messageHandler(fetchedMessage);
     }
 
     void start() {
@@ -581,11 +561,11 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
     /**
      * Helper that notifies PrefetchThread that message is dispatched and AutoAcknowledge
      */
-    private javax.jms.Message messageHandler(MessageManager messageManager) throws JMSException {
-        if (messageManager == null) {
+    private javax.jms.Message messageHandler(FetchedMessage fetchedMessage) throws JMSException {
+        if (fetchedMessage == null) {
             return null;
         }
-        javax.jms.Message message = messageManager.getMessage();
+        javax.jms.Message message = fetchedMessage.getMessage();
 
         // Notify PrefetchThread that message is dispatched
         this.messageDispatched();
@@ -623,10 +603,10 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
         List<SQSMessageIdentifier> purgedMessages = new ArrayList<>();
         synchronized (stateLock) {
             //let's walk over the prefetched messages
-            Iterator<MessageManager> managerIterator = messageQueue.iterator();
+            Iterator<FetchedMessage> managerIterator = messageQueue.iterator();
             while (managerIterator.hasNext()) {
-                MessageManager messageManager = managerIterator.next();
-                SQSMessage prefetchedMessage = (SQSMessage) messageManager.getMessage();
+                FetchedMessage fetchedMessage = managerIterator.next();
+                SQSMessage prefetchedMessage = (SQSMessage) fetchedMessage.getMessage();
                 SQSMessageIdentifier messageIdentifier = SQSMessageIdentifier.fromSQSMessage(prefetchedMessage);
 
                 //is the prefetch entry for one of the affected group ids?

@@ -786,26 +786,26 @@ public class SQSConnectionTest {
 
         SQSSession session = (SQSSession)sqsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         assertEquals(Session.AUTO_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
         assertEquals(Session.CLIENT_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.DUPS_OK_ACKNOWLEDGE);
         assertEquals(Session.DUPS_OK_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, SQSSession.UNORDERED_ACKNOWLEDGE);
         session.isRunning();
         assertEquals(SQSSession.UNORDERED_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertTrue(session.isRunning());
 
@@ -825,26 +825,26 @@ public class SQSConnectionTest {
 
         SQSSession session = (SQSSession)sqsConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         assertEquals(Session.AUTO_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
         assertEquals(Session.CLIENT_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, Session.DUPS_OK_ACKNOWLEDGE);
         assertEquals(Session.DUPS_OK_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 
         session = (SQSSession) sqsConnection.createSession(false, SQSSession.UNORDERED_ACKNOWLEDGE);
         session.isRunning();
         assertEquals(SQSSession.UNORDERED_ACKNOWLEDGE, session.getAcknowledgeMode());
-        assertEquals(sqsConnection, session.getDelegateConnection());
+        assertEquals(sqsConnection, session.getConnectionDelegate());
         assertTrue(sqsConnection.getSessions().contains(session));
         assertFalse(session.isRunning());
 

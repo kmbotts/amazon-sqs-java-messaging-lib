@@ -14,7 +14,10 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import javax.jms.Destination;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+
 import javax.jms.JMSException;
 import javax.jms.Queue;
 
@@ -23,76 +26,26 @@ import javax.jms.Queue;
  * URL. This is the way a client specifies the identity of a queue to JMS API
  * methods.
  */
-public class SQSQueueDestination implements Destination, Queue {
-    
+public class SQSQueueDestination implements Queue {
+
     private final String queueName;
 
+    @Getter
     private final String queueUrl;
 
+    @Getter
     private final boolean isFifo;
 
+    @Builder(access = AccessLevel.PACKAGE)
     SQSQueueDestination(String queueName, String queueUrl) {
         this.queueName = queueName;
         this.queueUrl = queueUrl;
         this.isFifo = this.queueName.endsWith(".fifo");
     }
 
-    /**
-     * Returns the name of this queue.
-     * 
-     * @return queueName
-     */
     @Override
+    @SuppressWarnings("RedundantThrows")
     public String getQueueName() throws JMSException {
         return this.queueName;
-    }
-
-    /**
-     * Returns the queueUrl of this queue.
-     * 
-     * @return queueUrl
-     */
-    public String getQueueUrl() {
-        return queueUrl;
-    }
-
-    public boolean isFifo() {
-        return isFifo;
-    }
-
-    @Override
-    public String toString() {
-        return "SQSDestination [queueName=" + queueName + ", queueUrl=" + queueUrl + "]";
-    }
-    
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((queueName == null) ? 0 : queueName.hashCode());
-        result = prime * result + ((queueUrl == null) ? 0 : queueUrl.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        SQSQueueDestination other = (SQSQueueDestination) obj;
-        if (queueName == null) {
-            if (other.queueName != null)
-                return false;
-        } else if (!queueName.equals(other.queueName))
-            return false;
-        if (queueUrl == null) {
-            if (other.queueUrl != null)
-                return false;
-        } else if (!queueUrl.equals(other.queueUrl))
-            return false;
-        return true;
     }
 }

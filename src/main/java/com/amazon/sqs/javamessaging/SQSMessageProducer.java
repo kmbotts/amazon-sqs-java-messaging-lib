@@ -38,7 +38,7 @@ import javax.jms.Queue;
  * operation.
  * <p>
  */
-public class SQSMessageProducer extends AbstractMessageProducer {
+class SQSMessageProducer extends AbstractMessageProducer {
     private static final Log LOG = LogFactory.getLog(SQSMessageProducer.class);
 
     @Builder(access = AccessLevel.PACKAGE)

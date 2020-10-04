@@ -46,7 +46,7 @@ import java.util.Set;
  * <li>Transactions</li>
  * </ul>
  */
-public class SQSSession extends AbstractSession {
+class SQSSession extends AbstractSession {
 
     @Builder
     SQSSession(AbstractConnection connection,

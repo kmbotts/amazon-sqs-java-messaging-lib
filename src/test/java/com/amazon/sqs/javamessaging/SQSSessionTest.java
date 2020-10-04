@@ -479,7 +479,7 @@ public class SQSSessionTest {
         sqsSession = new SQSSession(parentSQSConnection, AcknowledgeMode.ACK_AUTO, messageConsumers, messageProducers);
         sqsSession.start();
         MessageListener msgListener = mock(MessageListener.class);
-        SQSMessageConsumerPrefetch.MessageManager msgManager = mock(SQSMessageConsumerPrefetch.MessageManager.class);
+        FetchedMessage msgManager = mock(FetchedMessage.class);
 
         PrefetchManager prefetchManager = new PrefetchManager() {
             @Override

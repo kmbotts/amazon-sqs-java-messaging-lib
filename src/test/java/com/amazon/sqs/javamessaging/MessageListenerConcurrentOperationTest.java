@@ -47,7 +47,7 @@ public class MessageListenerConcurrentOperationTest {
     private static final int NUMBER_OF_MESSAGES_TO_PREFETCH = 10;
 
     private AmazonSQSMessagingClientWrapper amazonSQSClient;
-    private SQSMessageConsumerPrefetch.MessageManager msgManager;
+    private FetchedMessage msgManager;
     private volatile SQSSession session;
     private volatile SQSConnection connection;
 
@@ -89,7 +89,12 @@ public class MessageListenerConcurrentOperationTest {
 
         connection = new SQSConnection(amazonSQSClient, ProviderConfiguration.builder().numberOfMessagesToPrefetch(NUMBER_OF_MESSAGES_TO_PREFETCH).build());
         session = new SQSSession(connection, AcknowledgeMode.ACK_AUTO, null, null);
-        SQSSessionCallbackScheduler sqsSessionRunnable = new SQSSessionCallbackScheduler(session, AcknowledgeMode.ACK_AUTO, acknowledger, negativeAcknowledger);
+        SQSSessionCallbackScheduler sqsSessionRunnable = SQSSessionCallbackScheduler.builder()
+                .sessionDelegate(session)
+                .acknowledger(acknowledger)
+                .acknowledgeMode(AcknowledgeMode.ACK_AUTO)
+                .negativeAcknowledger(negativeAcknowledger)
+                .build();
 
         SQSMessageConsumer consumer = mock(SQSMessageConsumer.class);
 
@@ -97,7 +102,7 @@ public class MessageListenerConcurrentOperationTest {
                 amazonSQSClient, NUMBER_OF_MESSAGES_TO_PREFETCH);
         preftecher.setMessageConsumer(consumer);
 
-        msgManager = mock(SQSMessageConsumerPrefetch.MessageManager.class);
+        msgManager = mock(FetchedMessage.class);
         when(msgManager.getMessage())
                 .thenReturn(mock(SQSMessage.class));
         when(msgManager.getPrefetchManager())

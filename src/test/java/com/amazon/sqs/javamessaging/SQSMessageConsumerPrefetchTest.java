@@ -14,7 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch.MessageManager;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import com.amazon.sqs.javamessaging.message.SQSBytesMessage;
@@ -177,8 +176,8 @@ public class SQSMessageConsumerPrefetchTest {
                         // Ensure message queue was filled with expected messages
                         //after we return 'isClosed() == true' we will empty the prefetch queue while nacking messages
                         assertEquals(numMessages, consumerPrefetch.messageQueue.size());
-                        for (SQSMessageConsumerPrefetch.MessageManager messageManager : consumerPrefetch.messageQueue) {
-                            SQSMessage sqsMessage = (SQSMessage) messageManager.getMessage();
+                        for (FetchedMessage fetchedMessage : consumerPrefetch.messageQueue) {
+                            SQSMessage sqsMessage = (SQSMessage) fetchedMessage.getMessage();
                             assertTrue(receipt.contains(sqsMessage.getReceiptHandle()));
                         }
 
@@ -214,8 +213,8 @@ public class SQSMessageConsumerPrefetchTest {
 
         // Ensure message queue was filled with expected messages
         assertEquals(numMessages, consumerPrefetch.messageQueue.size());
-        for (SQSMessageConsumerPrefetch.MessageManager messageManager : consumerPrefetch.messageQueue) {
-            SQSMessage sqsMessage = (SQSMessage) messageManager.getMessage();
+        for (FetchedMessage fetchedMessage : consumerPrefetch.messageQueue) {
+            SQSMessage sqsMessage = (SQSMessage) fetchedMessage.getMessage();
             assertTrue(receipt.contains(sqsMessage.getReceiptHandle()));
         }
     }
@@ -531,12 +530,12 @@ public class SQSMessageConsumerPrefetchTest {
     @Test
     public void testSetMessageListener() {
 
-        SQSMessageConsumerPrefetch.MessageManager msgManager1 = mock(SQSMessageConsumerPrefetch.MessageManager.class);
+        FetchedMessage msgManager1 = mock(FetchedMessage.class);
         Message message1 = mock(Message.class);
         when(msgManager1.getMessage())
                 .thenReturn(message1);
 
-        SQSMessageConsumerPrefetch.MessageManager msgManager2 = mock(SQSMessageConsumerPrefetch.MessageManager.class);
+        FetchedMessage msgManager2 = mock(FetchedMessage.class);
         Message message2 = mock(Message.class);
         when(msgManager2.getMessage())
                 .thenReturn(message2);
@@ -550,7 +549,7 @@ public class SQSMessageConsumerPrefetchTest {
 
         assertTrue(consumerPrefetch.messageQueue.isEmpty());
 
-        List<MessageManager> expectedList = new ArrayList<MessageManager>();
+        List<FetchedMessage> expectedList = new ArrayList<FetchedMessage>();
         expectedList.add(msgManager1);
         expectedList.add(msgManager2);
         verify(sqsSessionRunnable).scheduleCallBacks(msgListener, expectedList);
@@ -1189,13 +1188,13 @@ public class SQSMessageConsumerPrefetchTest {
     }
 
     /**
-     * Test received messages call wait for messages and exists when consumer prefterch is closed
+     * Test received messages call wait for messages and exists when consumer prefetch is closed
      */
     @Test
     public void testReceiveMessageEmptyThenClosed() throws InterruptedException {
 
         /*
-         * Set up consumer prefetch and lactches
+         * Set up consumer prefetch and latches
          */
         consumerPrefetch.running = true;
         final CountDownLatch beforeReceiveCall = new CountDownLatch(1);
@@ -1221,17 +1220,17 @@ public class SQSMessageConsumerPrefetchTest {
             }
         });
 
-        assertEquals(true, beforeReceiveCall.await(10, TimeUnit.SECONDS));
+        assertTrue(beforeReceiveCall.await(10, TimeUnit.SECONDS));
         Thread.sleep(10);
 
         // Update the state and notify
         consumerPrefetch.close();
 
         // Wait till receive execution finishes
-        assertEquals(true, passedReceiveCall.await(10, TimeUnit.SECONDS));
+        assertTrue(passedReceiveCall.await(10, TimeUnit.SECONDS));
 
         // Validate that after session is closed receive returns null
-        assertEquals(true, noMessageReturned.get());
+        assertTrue(noMessageReturned.get());
 
         // Ensure the messagesRequested counter is reset correctly
         assertEquals(0, consumerPrefetch.messagesRequested);
@@ -1381,7 +1380,7 @@ public class SQSMessageConsumerPrefetchTest {
         assertEquals(receiptHandlers.size(), consumerPrefetch.messagesPrefetched);
 
         while (!consumerPrefetch.messageQueue.isEmpty()) {
-            SQSMessageConsumerPrefetch.MessageManager msgManager = consumerPrefetch.messageQueue.pollFirst();
+            FetchedMessage msgManager = consumerPrefetch.messageQueue.pollFirst();
             SQSMessage msg = (SQSMessage) msgManager.getMessage();
             receiptHandlers.contains(msg.getReceiptHandle());
         }
@@ -1929,7 +1928,7 @@ public class SQSMessageConsumerPrefetchTest {
 
         for (String receiptHandler : receiptHandlers) {
 
-            SQSMessageConsumerPrefetch.MessageManager msgManager = mock(SQSMessageConsumerPrefetch.MessageManager.class);
+            FetchedMessage msgManager = mock(FetchedMessage.class);
             com.amazonaws.services.sqs.model.Message message =
                     new com.amazonaws.services.sqs.model.Message().withReceiptHandle(receiptHandler)
                             .withAttributes(mapAttributes);

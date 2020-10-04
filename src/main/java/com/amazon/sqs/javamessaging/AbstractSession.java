@@ -14,7 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch.MessageManager;
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
 import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
@@ -137,7 +136,7 @@ public abstract class AbstractSession implements QueueSession {
     private final AbstractSQSClientWrapper sqsClientWrapper;
 
     @Getter(value = AccessLevel.PROTECTED)
-    private final AbstractConnection delegateConnection;
+    private final AbstractConnection connectionDelegate;
 
     /**
      * AcknowledgeMode of this Session.
@@ -191,21 +190,28 @@ public abstract class AbstractSession implements QueueSession {
      */
     private AbstractMessageConsumer activeConsumerInCallback = null;
 
-    AbstractSession(AbstractConnection delegateConnection,
+    AbstractSession(AbstractConnection connectionDelegate,
                     AcknowledgeMode acknowledgeMode,
                     Set<AbstractMessageConsumer> messageConsumers,
                     Set<AbstractMessageProducer> messageProducers) throws JMSException {
 
-        this.delegateConnection = delegateConnection;
-        this.sqsClientWrapper = delegateConnection.getSqsClientWrapper();
+        this.connectionDelegate = connectionDelegate;
+        this.sqsClientWrapper = connectionDelegate.getSqsClientWrapper();
         this.acknowledgeMode = acknowledgeMode;
         this.acknowledger = this.acknowledgeMode.createAcknowledger(sqsClientWrapper, this);
         this.negativeAcknowledger = new NegativeAcknowledger(sqsClientWrapper);
-        this.callbackScheduler = new SQSSessionCallbackScheduler(this, acknowledgeMode, acknowledger, negativeAcknowledger);
-        this.executor = Executors.newSingleThreadExecutor(delegateConnection.getSessionThreadFactory());
+
         this.messageConsumers = Optional.ofNullable(messageConsumers).orElse(Collections.newSetFromMap(new ConcurrentHashMap<>()));
         this.messageProducers = Optional.ofNullable(messageProducers).orElse(Collections.newSetFromMap(new ConcurrentHashMap<>()));
 
+        this.callbackScheduler = SQSSessionCallbackScheduler.builder()
+                .sessionDelegate(this)
+                .acknowledgeMode(acknowledgeMode)
+                .acknowledger(acknowledger)
+                .negativeAcknowledger(negativeAcknowledger)
+                .build();
+
+        this.executor = Executors.newSingleThreadExecutor(connectionDelegate.getSessionThreadFactory());
         this.executor.execute(callbackScheduler);
     }
 
@@ -693,7 +699,7 @@ public abstract class AbstractSession implements QueueSession {
 
         if (shouldClose) {
             try {
-                delegateConnection.removeSession(this);
+                connectionDelegate.removeSession(this);
 
                 for (AbstractMessageConsumer messageConsumer : messageConsumers) {
                     messageConsumer.close();
@@ -751,13 +757,13 @@ public abstract class AbstractSession implements QueueSession {
 
     AbstractMessageConsumer createSQSMessageConsumer(SQSQueueDestination destination) {
         return SQSMessageConsumer.builder()
-                .connection(getDelegateConnection())
+                .connection(getConnectionDelegate())
                 .session(this)
                 .callbackScheduler(getCallbackScheduler())
                 .destination(destination)
                 .acknowledger(getAcknowledger())
                 .negativeAcknowledger(getNegativeAcknowledger())
-                .threadFactory(getDelegateConnection().getConsumerPrefetchThreadFactory())
+                .threadFactory(getConnectionDelegate().getConsumerPrefetchThreadFactory())
                 .build();
     }
 
@@ -941,21 +947,4 @@ public abstract class AbstractSession implements QueueSession {
     }
     //endregion
 
-    static class CallbackEntry {
-        private final MessageListener messageListener;
-        private final MessageManager messageManager;
-
-        CallbackEntry(MessageListener messageListener, MessageManager messageManager) {
-            this.messageListener = messageListener;
-            this.messageManager = messageManager;
-        }
-
-        public MessageListener getMessageListener() {
-            return messageListener;
-        }
-
-        public MessageManager getMessageManager() {
-            return messageManager;
-        }
-    }
 }
