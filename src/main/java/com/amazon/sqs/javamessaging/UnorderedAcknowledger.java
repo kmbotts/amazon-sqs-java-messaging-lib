@@ -12,11 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.acknowledge;
+package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
-import com.amazon.sqs.javamessaging.AbstractSession;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 
 import javax.jms.JMSException;

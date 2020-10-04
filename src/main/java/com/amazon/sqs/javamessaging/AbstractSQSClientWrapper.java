@@ -30,7 +30,7 @@ import javax.jms.JMSSecurityException;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class AbstractSQSClientWrapper {
+abstract class AbstractSQSClientWrapper {
     private static final Log LOG = LogFactory.getLog(AmazonSQSMessagingClientWrapper.class);
 
     private static final Set<String> SECURITY_EXCEPTION_ERROR_CODES;
@@ -50,11 +50,7 @@ public abstract class AbstractSQSClientWrapper {
 
     private final AWSCredentialsProvider credentialsProvider;
 
-    protected AbstractSQSClientWrapper() {
-        this(null);
-    }
-
-    protected AbstractSQSClientWrapper(AWSCredentialsProvider credentialsProvider) {
+    AbstractSQSClientWrapper(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
@@ -65,9 +61,9 @@ public abstract class AbstractSQSClientWrapper {
      *
      * @return amazonSQSClient
      */
-    public abstract AmazonSQS getClient();
+    abstract AmazonSQS getClient();
 
-    public void shutdown() {
+    void shutdown() {
         getClient().shutdown();
     }
 

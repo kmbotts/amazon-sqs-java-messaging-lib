@@ -14,8 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.SendMessageAsyncHandler;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -49,12 +47,12 @@ public class SQSAsyncMessageProducer extends AbstractMessageProducer {
     }
 
     @Override
-    protected AmazonSQSAsyncMessagingClientWrapper getSqsClientWrapper() {
+    AmazonSQSAsyncMessagingClientWrapper getSqsClientWrapper() {
         return (AmazonSQSAsyncMessagingClientWrapper) super.getSqsClientWrapper();
     }
 
     @Override
-    protected void sendMessageInternal(Queue queue, Message message, CompletionListener listener) throws JMSException {
+    void sendMessageInternal(Queue queue, Message message, CompletionListener listener) throws JMSException {
         checkClosed();
         SQSQueueDestination sqsQueueDestination = (SQSQueueDestination) queue;
         SQSMessage sqsMessage = checkMessageFormat(message);

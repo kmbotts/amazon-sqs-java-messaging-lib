@@ -12,12 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.acknowledge;
+package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
-import com.amazon.sqs.javamessaging.FetchedMessage;
-import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
 
@@ -36,13 +32,13 @@ import java.util.List;
  * <p>
  * Negative acknowledge can potentially cause duplicate deliveries.
  */
-public class NegativeAcknowledger extends BulkSQSOperation {
+class NegativeAcknowledger extends BulkSQSOperation {
 
     private static final int NACK_TIMEOUT = 0;
 
     private final AbstractSQSClientWrapper sqsClientWrapper;
 
-    public NegativeAcknowledger(AbstractSQSClientWrapper sqsClientWrapper) {
+    NegativeAcknowledger(AbstractSQSClientWrapper sqsClientWrapper) {
         this.sqsClientWrapper = sqsClientWrapper;
     }
 
@@ -54,7 +50,7 @@ public class NegativeAcknowledger extends BulkSQSOperation {
      * @param queueUrl     The queueUrl of the messages, which they received from.
      * @throws JMSException If <code>action</code> throws.
      */
-    public void bulkAction(Deque<FetchedMessage> messageQueue, String queueUrl) throws JMSException {
+    void bulkAction(Deque<FetchedMessage> messageQueue, String queueUrl) throws JMSException {
         List<String> receiptHandles = new ArrayList<>();
         while (!messageQueue.isEmpty()) {
             receiptHandles.add(((SQSMessage) (messageQueue.pollFirst().getMessage())).getReceiptHandle());
@@ -80,7 +76,7 @@ public class NegativeAcknowledger extends BulkSQSOperation {
      * @throws JMSException If <code>changeMessageVisibilityBatch</code> throws.
      */
     @Override
-    public void action(String queueUrl, List<String> receiptHandles) throws JMSException {
+    void action(String queueUrl, List<String> receiptHandles) throws JMSException {
 
         if (receiptHandles == null || receiptHandles.isEmpty()) {
             return;
@@ -98,6 +94,5 @@ public class NegativeAcknowledger extends BulkSQSOperation {
         sqsClientWrapper.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(
                 queueUrl, nackEntries));
     }
-
 }
 

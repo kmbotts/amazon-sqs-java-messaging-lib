@@ -17,8 +17,7 @@ package com.amazon.sqs.javamessaging;
 import javax.jms.ConnectionMetaData;
 import javax.jms.JMSException;
 
-
-public class SQSMessagingClientConstants {
+class SQSMessagingClientConstants {
 
     public static final String UNSUPPORTED_METHOD = "Unsupported Method";
 

@@ -14,8 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
 import lombok.AccessLevel;
 import lombok.Builder;
 
@@ -35,7 +33,7 @@ import java.util.concurrent.ThreadFactory;
  * The message consumer creates a background thread to prefetch the messages to
  * improve the <code>receive</code> turn-around times.
  */
-public class SQSMessageConsumer extends AbstractMessageConsumer {
+class SQSMessageConsumer extends AbstractMessageConsumer {
 
     @Builder(access = AccessLevel.PACKAGE)
     SQSMessageConsumer(AbstractConnection connection,

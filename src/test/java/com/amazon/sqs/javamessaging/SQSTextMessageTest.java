@@ -12,16 +12,14 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.message;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-import javax.jms.JMSException;
+package com.amazon.sqs.javamessaging;
 
 import org.junit.Test;
 
-import com.amazon.sqs.javamessaging.message.SQSTextMessage;
+import javax.jms.JMSException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /**
  * Test the SQSTextMessageTest class

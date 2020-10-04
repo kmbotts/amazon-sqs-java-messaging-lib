@@ -49,21 +49,20 @@ import javax.jms.QueueConnectionFactory;
  * connection to SQS, so validity of credentials are not checked with those
  * methods.
  */
-
-public abstract class AbstractConnectionFactory implements QueueConnectionFactory {
+abstract class AbstractConnectionFactory implements QueueConnectionFactory {
     private static final Log LOG = LogFactory.getLog(AbstractConnectionFactory.class);
 
     @Getter(value = AccessLevel.PROTECTED)
     private final ProviderConfiguration providerConfiguration;
 
-    protected AbstractConnectionFactory(ProviderConfiguration providerConfiguration) {
+    AbstractConnectionFactory(ProviderConfiguration providerConfiguration) {
         if (providerConfiguration == null) {
             throw new IllegalArgumentException("Provider configuration cannot be null");
         }
         this.providerConfiguration = providerConfiguration;
     }
 
-    protected abstract QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException;
+    abstract QueueConnection createConnection(AWSCredentialsProvider awsCredentialsProvider) throws JMSException;
 
     //region QueueConnectionFactory Methods
     @Override

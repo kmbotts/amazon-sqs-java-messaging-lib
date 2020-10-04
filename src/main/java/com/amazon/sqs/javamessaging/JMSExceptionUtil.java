@@ -1,13 +1,11 @@
-package com.amazon.sqs.javamessaging.util;
-
-import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
+package com.amazon.sqs.javamessaging;
 
 import javax.jms.IllegalStateException;
 import javax.jms.JMSException;
 
 import java.util.function.Supplier;
 
-public class JMSExceptionUtil {
+class JMSExceptionUtil {
 
     public static Supplier<JMSException> UnsupportedMethod() {
         return () -> new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);

@@ -12,31 +12,33 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.util;
+package com.amazon.sqs.javamessaging;
 
 /**
  * Simple exponential back-off strategy, that is used for re-tries on SQS
  * interactions.
  */
-public class ExponentialBackoffStrategy {
+class ExponentialBackoffStrategy {
 
-    private long delayInterval;
-    private long initialDelay;
-    private long maxDelay;
+    public static final ExponentialBackoffStrategy DEFAULT = new ExponentialBackoffStrategy(25, 25, 2000);
 
-    public ExponentialBackoffStrategy(long delayInterval, long initialDelay, long maxDelay) {
+    private final long delayInterval;
+    private final long initialDelay;
+    private final long maxDelay;
+
+    ExponentialBackoffStrategy(long delayInterval, long initialDelay, long maxDelay) {
         this.delayInterval = delayInterval;
         this.initialDelay = initialDelay;
         this.maxDelay = maxDelay;
     }
-    
+
     /**
      * Returns the delay before the next attempt.
-     * 
-     * @param retriesAttempted
+     *
+     * @param retriesAttempted retries
      * @return The delay before the next attempt.
      */
-    public long delayBeforeNextRetry(int retriesAttempted) {
+    long delayBeforeNextRetry(int retriesAttempted) {
         if (retriesAttempted < 1) {
             return initialDelay;
         }
@@ -46,7 +48,7 @@ public class ExponentialBackoffStrategy {
             return maxDelay;
         }
 
-        long multiplier = ((long)1 << (retriesAttempted - 1));
+        long multiplier = ((long) 1 << (retriesAttempted - 1));
         if (multiplier > Long.MAX_VALUE / delayInterval) {
             return maxDelay;
         }

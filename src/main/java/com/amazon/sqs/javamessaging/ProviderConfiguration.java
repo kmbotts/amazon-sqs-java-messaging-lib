@@ -14,7 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
 import lombok.Builder;
 import lombok.Data;
 

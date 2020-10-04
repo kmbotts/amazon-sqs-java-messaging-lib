@@ -12,24 +12,22 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.message;
+package com.amazon.sqs.javamessaging;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import org.junit.Assert;
+import org.junit.Test;
+
+import javax.jms.JMSException;
+import javax.jms.ObjectMessage;
 
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.JMSException;
-import javax.jms.ObjectMessage;
-
-import org.junit.Assert;
-import org.junit.Test;
-
-import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /**
  * Test the SQSObjectMessageTest class

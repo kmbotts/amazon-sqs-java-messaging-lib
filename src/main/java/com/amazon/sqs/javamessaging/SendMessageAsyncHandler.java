@@ -1,6 +1,5 @@
-package com.amazon.sqs.javamessaging.acknowledge;
+package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.handlers.AsyncHandler;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
@@ -11,7 +10,7 @@ import javax.jms.Message;
 
 import java.util.Optional;
 
-public class SendMessageAsyncHandler implements AsyncHandler<SendMessageRequest, SendMessageResult> {
+class SendMessageAsyncHandler implements AsyncHandler<SendMessageRequest, SendMessageResult> {
 
     private static final CompletionListener NO_OP = new CompletionListener() {
         @Override
@@ -26,7 +25,7 @@ public class SendMessageAsyncHandler implements AsyncHandler<SendMessageRequest,
     private final SQSMessage message;
     private final CompletionListener completionListener;
 
-    public SendMessageAsyncHandler(Message message, CompletionListener completionListener) {
+    SendMessageAsyncHandler(Message message, CompletionListener completionListener) {
         this.message = (SQSMessage) message;
         this.completionListener = Optional.ofNullable(completionListener).orElse(NO_OP);
     }

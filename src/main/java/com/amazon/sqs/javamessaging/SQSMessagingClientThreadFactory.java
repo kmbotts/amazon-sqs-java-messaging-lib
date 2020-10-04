@@ -12,7 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.util;
+package com.amazon.sqs.javamessaging;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Simple thread factory that supports ThreadGroups
  */
 
-public class SQSMessagingClientThreadFactory implements MessagingClientThreadFactory {
+class SQSMessagingClientThreadFactory implements MessagingClientThreadFactory {
 
     private final String threadBaseName;
 
@@ -30,11 +30,11 @@ public class SQSMessagingClientThreadFactory implements MessagingClientThreadFac
 
     private ThreadGroup threadGroup;
 
-    public SQSMessagingClientThreadFactory(String taskName, boolean isDaemon) {
+    SQSMessagingClientThreadFactory(String taskName, boolean isDaemon) {
         this(taskName, isDaemon, false);
     }
 
-    public SQSMessagingClientThreadFactory(String taskName, boolean isDaemon, boolean createWithThreadGroup) {
+    SQSMessagingClientThreadFactory(String taskName, boolean isDaemon, boolean createWithThreadGroup) {
         this.threadBaseName = taskName + "Thread-";
         this.threadCounter = new AtomicInteger(0);
         this.isDaemon = isDaemon;
@@ -42,13 +42,6 @@ public class SQSMessagingClientThreadFactory implements MessagingClientThreadFac
             threadGroup = new ThreadGroup(taskName + "ThreadGroup");
             threadGroup.setDaemon(isDaemon);
         }
-    }
-
-    public SQSMessagingClientThreadFactory(String taskName, ThreadGroup threadGroup) {
-        this.threadBaseName = taskName + "Thread-";
-        this.threadCounter = new AtomicInteger(0);
-        this.isDaemon = threadGroup.isDaemon();
-        this.threadGroup = threadGroup;
     }
 
     /**
@@ -62,18 +55,17 @@ public class SQSMessagingClientThreadFactory implements MessagingClientThreadFac
         Thread t;
         if (threadGroup == null) {
             t = new Thread(r, threadBaseName + threadCounter.incrementAndGet());
-            t.setDaemon(isDaemon);
         } else {
             t = new Thread(threadGroup, r, threadBaseName + threadCounter.incrementAndGet());
-            t.setDaemon(isDaemon);
         }
+        t.setDaemon(isDaemon);
         return t;
     }
 
     /**
      * Checks if the thread is member of the thread group
      *
-     * @param thread
+     * @param thread thread
      * @return True If there is a thread group and the given thread is member of
      * the group
      */

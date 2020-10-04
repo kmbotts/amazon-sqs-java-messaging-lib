@@ -41,7 +41,6 @@ import java.util.function.Supplier;
  * connection to SQS, so validity of credentials are not checked with those
  * methods.
  */
-
 public class SQSAsyncConnectionFactory extends AbstractConnectionFactory {
 
     private final Supplier<AmazonSQSAsync> amazonSQSAsyncSupplier;

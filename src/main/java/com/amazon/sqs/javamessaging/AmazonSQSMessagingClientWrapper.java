@@ -14,7 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQS;
 
@@ -27,21 +26,21 @@ import java.util.Optional;
  * <code>AmazonServiceException</code> and <code>AmazonClientException</code> into
  * JMSException/JMSSecurityException.
  */
-public class AmazonSQSMessagingClientWrapper extends AbstractSQSClientWrapper {
+class AmazonSQSMessagingClientWrapper extends AbstractSQSClientWrapper {
 
     private final AmazonSQS amazonSQS;
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS) throws JMSException {
+    AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS) throws JMSException {
         this(amazonSQS, null);
     }
 
-    protected AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS, AWSCredentialsProvider credentialsProvider) throws JMSException {
+    AmazonSQSMessagingClientWrapper(AmazonSQS amazonSQS, AWSCredentialsProvider credentialsProvider) throws JMSException {
         super(credentialsProvider);
         this.amazonSQS = Optional.ofNullable(amazonSQS).orElseThrow(JMSExceptionUtil.NullAmazonSqsClient());
     }
 
     @Override
-    public AmazonSQS getClient() {
+    AmazonSQS getClient() {
         return this.amazonSQS;
     }
 }

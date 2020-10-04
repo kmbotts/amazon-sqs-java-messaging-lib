@@ -12,9 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.acknowledge;
+package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.util.StringUtils;
 import lombok.Builder;
 import lombok.Data;
@@ -25,7 +24,7 @@ import javax.jms.JMSException;
  * Identifies an SQS message, when (negative)acknowledging the message
  */
 @Data
-public class SQSMessageIdentifier {
+class SQSMessageIdentifier {
 
     // The queueUrl where the message was sent or received from
     private final String queueUrl;

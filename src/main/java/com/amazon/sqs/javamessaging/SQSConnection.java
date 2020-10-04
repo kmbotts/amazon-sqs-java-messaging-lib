@@ -52,7 +52,7 @@ import lombok.Builder;
  * <p>
  * Exception listener on connection is not supported.
  */
-public class SQSConnection extends AbstractConnection {
+class SQSConnection extends AbstractConnection {
 
     @Builder(access = AccessLevel.PACKAGE)
     SQSConnection(AmazonSQSMessagingClientWrapper clientWrapper,

@@ -12,10 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.acknowledge;
-
-import com.amazon.sqs.javamessaging.AbstractSQSClientWrapper;
-import com.amazon.sqs.javamessaging.AbstractSession;
+package com.amazon.sqs.javamessaging;
 
 import javax.jms.JMSException;
 
@@ -33,7 +30,7 @@ import javax.jms.JMSException;
  * acknowledges.</li>
  * </ul>
  */
-public enum AcknowledgeMode {
+enum AcknowledgeMode {
     ACK_AUTO, ACK_UNORDERED, ACK_RANGE;
 
     private int originalAcknowledgeMode;
@@ -41,7 +38,7 @@ public enum AcknowledgeMode {
     /**
      * Sets the acknowledge mode.
      */
-    public AcknowledgeMode withOriginalAcknowledgeMode(int originalAcknowledgeMode) {
+    AcknowledgeMode withOriginalAcknowledgeMode(int originalAcknowledgeMode) {
         this.originalAcknowledgeMode = originalAcknowledgeMode;
         return this;
     }
@@ -49,7 +46,7 @@ public enum AcknowledgeMode {
     /**
      * Returns the acknowledge mode.
      */
-    public int getOriginalAcknowledgeMode() {
+    int getOriginalAcknowledgeMode() {
         return originalAcknowledgeMode;
     }
 
@@ -61,7 +58,7 @@ public enum AcknowledgeMode {
      * @param session          the associated session for the acknowledger
      * @throws JMSException If invalid acknowledge mode is used.
      */
-    public Acknowledger createAcknowledger(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session) throws JMSException {
+    Acknowledger createAcknowledger(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session) throws JMSException {
         switch (this) {
             case ACK_AUTO:
                 return new AutoAcknowledger(sqsClientWrapper, session);

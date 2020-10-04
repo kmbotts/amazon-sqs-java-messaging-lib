@@ -14,10 +14,7 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.util.ExponentialBackoffStrategy;
-
 import org.junit.Test;
-import org.junit.Before;
 
 import static org.junit.Assert.assertEquals;
 

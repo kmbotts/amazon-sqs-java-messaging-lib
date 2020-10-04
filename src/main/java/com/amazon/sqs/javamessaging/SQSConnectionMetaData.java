@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
-public class SQSConnectionMetaData implements ConnectionMetaData {
+class SQSConnectionMetaData implements ConnectionMetaData {
 
     private final String jmsVersion;
     private final int jmsMajorVersion;

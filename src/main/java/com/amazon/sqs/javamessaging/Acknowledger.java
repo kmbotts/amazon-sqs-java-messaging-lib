@@ -12,9 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.acknowledge;
-
-import com.amazon.sqs.javamessaging.message.SQSMessage;
+package com.amazon.sqs.javamessaging;
 
 import javax.jms.JMSException;
 
@@ -26,7 +24,7 @@ public interface Acknowledger {
      * Generic Acknowledge method. This method will delete message(s) in SQS Queue.
      *
      * @param message message to acknowledge.
-     * @throws JMSException
+     * @throws JMSException exception
      */
     void acknowledge(SQSMessage message) throws JMSException;
 
@@ -35,7 +33,7 @@ public interface Acknowledger {
      * help create list of message backlog.
      *
      * @param message notify acknowledger message is received
-     * @throws JMSException
+     * @throws JMSException exception
      */
     void notifyMessageReceived(SQSMessage message) throws JMSException;
 

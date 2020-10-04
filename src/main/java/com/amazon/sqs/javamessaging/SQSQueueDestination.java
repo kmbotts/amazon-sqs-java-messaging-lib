@@ -26,7 +26,7 @@ import javax.jms.Queue;
  * URL. This is the way a client specifies the identity of a queue to JMS API
  * methods.
  */
-public class SQSQueueDestination implements Queue {
+class SQSQueueDestination implements Queue {
 
     private final String queueName;
 

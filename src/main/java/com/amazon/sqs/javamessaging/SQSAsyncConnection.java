@@ -49,7 +49,7 @@ package com.amazon.sqs.javamessaging;
  * <p>
  * Exception listener on connection is not supported.
  */
-public class SQSAsyncConnection extends AbstractConnection {
+class SQSAsyncConnection extends AbstractConnection {
 
     SQSAsyncConnection(AmazonSQSAsyncMessagingClientWrapper amazonSQSClientJMSWrapper,
                        ProviderConfiguration providerConfiguration) {

@@ -14,9 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
-import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.logging.Log;
@@ -75,7 +72,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Exception listener on connection is not supported.
  */
-public abstract class AbstractConnection implements QueueConnection {
+abstract class AbstractConnection implements QueueConnection {
     private static final Log LOG = LogFactory.getLog(AbstractConnection.class);
 
     /**
@@ -127,8 +124,8 @@ public abstract class AbstractConnection implements QueueConnection {
 
     private final Set<Session> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    protected AbstractConnection(AbstractSQSClientWrapper sqsClientWrapper,
-                                 ProviderConfiguration providerConfiguration) {
+    AbstractConnection(AbstractSQSClientWrapper sqsClientWrapper,
+                       ProviderConfiguration providerConfiguration) {
         this.sqsClientWrapper = sqsClientWrapper;
         this.numberOfMessagesToPrefetch = providerConfiguration.getNumberOfMessagesToPrefetch();
         this.sessionThreadFactory = providerConfiguration.getSessionThreadFactory();

@@ -14,16 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.NegativeAcknowledger;
-import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
-import com.amazon.sqs.javamessaging.message.SQSBytesMessage;
-import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
-import com.amazon.sqs.javamessaging.message.SQSTextMessage;
-import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
-import com.amazon.sqs.javamessaging.util.MessagingClientThreadFactory;
-import com.amazon.sqs.javamessaging.util.SQSMessagingClientThreadFactory;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.logging.Log;
@@ -88,7 +78,7 @@ import java.util.concurrent.TimeUnit;
  * <li>Transactions</li>
  * </ul>
  */
-public abstract class AbstractSession implements QueueSession {
+abstract class AbstractSession implements QueueSession {
     private static final Log LOG = LogFactory.getLog(AbstractSession.class);
 
     private static final int SESSION_EXECUTOR_GRACEFUL_SHUTDOWN_TIME = 10;
@@ -132,10 +122,10 @@ public abstract class AbstractSession implements QueueSession {
      */
     private volatile boolean closing = false;
 
-    @Getter(value = AccessLevel.PROTECTED)
+    @Getter(value = AccessLevel.PACKAGE)
     private final AbstractSQSClientWrapper sqsClientWrapper;
 
-    @Getter(value = AccessLevel.PROTECTED)
+    @Getter(value = AccessLevel.PACKAGE)
     private final AbstractConnection connectionDelegate;
 
     /**
@@ -146,13 +136,13 @@ public abstract class AbstractSession implements QueueSession {
     /**
      * Acknowledger of this Session.
      */
-    @Getter(value = AccessLevel.PROTECTED)
+    @Getter(value = AccessLevel.PACKAGE)
     private final Acknowledger acknowledger;
 
     /**
      * Negative acknowledger of this Session
      */
-    @Getter(value = AccessLevel.PROTECTED)
+    @Getter(value = AccessLevel.PACKAGE)
     private final NegativeAcknowledger negativeAcknowledger;
 
     /**
@@ -215,8 +205,8 @@ public abstract class AbstractSession implements QueueSession {
         this.executor.execute(callbackScheduler);
     }
 
-    protected abstract AbstractMessageProducer createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
-                                                                     Destination destination);
+    abstract AbstractMessageProducer createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,
+                                                           Destination destination);
 
     //region QueueSession Methods
     //region Supported Methods

@@ -14,8 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
-import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -47,7 +45,7 @@ import java.util.concurrent.TimeUnit;
  * The message consumer creates a background thread to prefetch the messages to
  * improve the <code>receive</code> turn-around times.
  */
-public abstract class AbstractMessageConsumer implements QueueReceiver {
+abstract class AbstractMessageConsumer implements QueueReceiver {
     private static final Log LOG = LogFactory.getLog(AbstractMessageConsumer.class);
     public static final int PREFETCH_EXECUTOR_GRACEFUL_SHUTDOWN_TIME = 30;
 
@@ -242,7 +240,7 @@ public abstract class AbstractMessageConsumer implements QueueReceiver {
     /**
      * This stops the prefetching
      */
-    protected void stopPrefetch() {
+    void stopPrefetch() {
         if (!closed) {
             sqsMessageConsumerPrefetch.stop();
         }
@@ -251,7 +249,7 @@ public abstract class AbstractMessageConsumer implements QueueReceiver {
     /**
      * This starts the prefetching
      */
-    protected void startPrefetch() {
+    void startPrefetch() {
         if (!closed) {
             sqsMessageConsumerPrefetch.start();
         }

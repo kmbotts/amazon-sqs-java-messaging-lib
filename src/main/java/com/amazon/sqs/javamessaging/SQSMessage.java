@@ -12,13 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.message;
+package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.SQSMessageConsumerPrefetch;
-import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
-import com.amazon.sqs.javamessaging.SQSQueueDestination;
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
-import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 
 import javax.jms.Destination;
@@ -36,26 +31,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.APPROXIMATE_RECEIVE_COUNT;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.BOOLEAN;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.BYTE;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.DOUBLE;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.FLOAT;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.INT;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.INT_FALSE;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.INT_TRUE;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.JMSX_DELIVERY_COUNT;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.JMSX_GROUP_ID;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.LONG;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.MESSAGE_DEDUPLICATION_ID;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.MESSAGE_GROUP_ID;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.NUMBER;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.SEQUENCE_NUMBER;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.SHORT;
-import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.STRING;
 
 /**
  * The SQSMessage is the root class of all SQS JMS messages and implements JMS
@@ -78,7 +53,7 @@ import static com.amazon.sqs.javamessaging.SQSMessagingClientConstants.STRING;
  * JMSXDeliveryCount reserved property is supported and set based on the
  * approximate receive count observed on the SQS side.
  */
-public class SQSMessage implements Message {
+class SQSMessage implements Message {
 
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
@@ -137,14 +112,14 @@ public class SQSMessage implements Message {
         receiptHandle = sqsMessage.getReceiptHandle();
         this.setSQSMessageID(sqsMessage.getMessageId());
         Map<String, String> systemAttributes = sqsMessage.getAttributes();
-        int receiveCount = Integer.parseInt(systemAttributes.get(APPROXIMATE_RECEIVE_COUNT));
+        int receiveCount = Integer.parseInt(systemAttributes.get(SQSMessagingClientConstants.APPROXIMATE_RECEIVE_COUNT));
 
-        /**
-         * JMSXDeliveryCount is set based on SQS ApproximateReceiveCount
-         * attribute.
+        /*
+          JMSXDeliveryCount is set based on SQS ApproximateReceiveCount
+          attribute.
          */
-        properties.put(JMSX_DELIVERY_COUNT, new JMSMessagePropertyValue(
-                receiveCount, INT));
+        properties.put(SQSMessagingClientConstants.JMSX_DELIVERY_COUNT, new JMSMessagePropertyValue(
+                receiveCount, SQSMessagingClientConstants.INT));
         if (receiveCount > 1) {
             setJMSRedelivered(true);
         }
@@ -153,9 +128,9 @@ public class SQSMessage implements Message {
         }
 
         // map the SequenceNumber, MessageGroupId and MessageDeduplicationId to JMS specific properties
-        mapSystemAttributeToJmsMessageProperty(systemAttributes, SEQUENCE_NUMBER, JMS_SQS_SEQUENCE_NUMBER);
-        mapSystemAttributeToJmsMessageProperty(systemAttributes, MESSAGE_DEDUPLICATION_ID, JMS_SQS_DEDUPLICATION_ID);
-        mapSystemAttributeToJmsMessageProperty(systemAttributes, MESSAGE_GROUP_ID, JMSX_GROUP_ID);
+        mapSystemAttributeToJmsMessageProperty(systemAttributes, SQSMessagingClientConstants.SEQUENCE_NUMBER, SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
+        mapSystemAttributeToJmsMessageProperty(systemAttributes, SQSMessagingClientConstants.MESSAGE_DEDUPLICATION_ID, SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID);
+        mapSystemAttributeToJmsMessageProperty(systemAttributes, SQSMessagingClientConstants.MESSAGE_GROUP_ID, SQSMessagingClientConstants.JMSX_GROUP_ID);
 
         writePermissionsForBody = false;
         writePermissionsForProperties = false;
@@ -164,7 +139,7 @@ public class SQSMessage implements Message {
     private void mapSystemAttributeToJmsMessageProperty(Map<String, String> systemAttributes, String systemAttributeName, String jmsMessagePropertyName) throws JMSException {
         String systemAttributeValue = systemAttributes.get(systemAttributeName);
         if (systemAttributeValue != null) {
-            properties.put(jmsMessagePropertyName, new JMSMessagePropertyValue(systemAttributeValue, STRING));
+            properties.put(jmsMessagePropertyName, new JMSMessagePropertyValue(systemAttributeValue, SQSMessagingClientConstants.STRING));
         }
     }
 
@@ -216,7 +191,7 @@ public class SQSMessage implements Message {
     /**
      * Get SQS Message Group Id (applicable for FIFO queues, available also as JMS property 'JMSXGroupId')
      *
-     * @throws JMSException
+     * @throws JMSException exception
      */
     public String getSQSMessageGroupId() throws JMSException {
         return getStringProperty(SQSMessagingClientConstants.JMSX_GROUP_ID);
@@ -225,7 +200,7 @@ public class SQSMessage implements Message {
     /**
      * Get SQS Message Deduplication Id (applicable for FIFO queues, available also as JMS property 'JMS_SQS_DeduplicationId')
      *
-     * @throws JMSException
+     * @throws JMSException exception
      */
     public String getSQSMessageDeduplicationId() throws JMSException {
         return getStringProperty(SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID);
@@ -234,7 +209,7 @@ public class SQSMessage implements Message {
     /**
      * Get SQS Message Sequence Number (applicable for FIFO queues, available also as JMS property 'JMS_SQS_SequenceNumber')
      *
-     * @throws JMSException
+     * @throws JMSException exception
      */
     public String getSQSMessageSequenceNumber() throws JMSException {
         return getStringProperty(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
@@ -858,7 +833,7 @@ public class SQSMessage implements Message {
      *
      * @throws JMSException          On Internal error
      * @throws IllegalStateException If this method is called on a closed session.
-     * @see com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode
+     * @see AcknowledgeMode
      */
     @Override
     public void acknowledge() throws JMSException {
@@ -960,7 +935,7 @@ public class SQSMessage implements Message {
             CONVERSION_MAP.put(new ConversionKey(String.class, Boolean.class), new Converter() {
                 public Object convert(Object value) {
                     String stringValue = (String) value;
-                    if (Boolean.valueOf(stringValue) || INT_TRUE.equals((String) value)) {
+                    if (Boolean.valueOf(stringValue) || SQSMessagingClientConstants.INT_TRUE.equals((String) value)) {
                         return Boolean.TRUE;
                     }
                     return Boolean.FALSE;
@@ -1069,11 +1044,11 @@ public class SQSMessage implements Message {
         public JMSMessagePropertyValue(Object value) throws JMSException {
             this.type = getType(value);
             this.value = value;
-            if (BOOLEAN.equals(type)) {
+            if (SQSMessagingClientConstants.BOOLEAN.equals(type)) {
                 if ((Boolean) value) {
-                    stringMessageAttributeValue = INT_TRUE;
+                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_TRUE;
                 } else {
-                    stringMessageAttributeValue = INT_FALSE;
+                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_FALSE;
                 }
             } else {
                 stringMessageAttributeValue = value.toString();
@@ -1083,11 +1058,11 @@ public class SQSMessage implements Message {
         public JMSMessagePropertyValue(Object value, String type) throws JMSException {
             this.value = value;
             this.type = type;
-            if (BOOLEAN.equals(type)) {
+            if (SQSMessagingClientConstants.BOOLEAN.equals(type)) {
                 if ((Boolean) value) {
-                    stringMessageAttributeValue = INT_TRUE;
+                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_TRUE;
                 } else {
-                    stringMessageAttributeValue = INT_FALSE;
+                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_FALSE;
                 }
             } else {
                 stringMessageAttributeValue = value.toString();
@@ -1096,45 +1071,45 @@ public class SQSMessage implements Message {
 
         private static String getType(Object value) throws JMSException {
             if (value instanceof String) {
-                return STRING;
+                return SQSMessagingClientConstants.STRING;
             } else if (value instanceof Integer) {
-                return INT;
+                return SQSMessagingClientConstants.INT;
             } else if (value instanceof Long) {
-                return LONG;
+                return SQSMessagingClientConstants.LONG;
             } else if (value instanceof Boolean) {
-                return BOOLEAN;
+                return SQSMessagingClientConstants.BOOLEAN;
             } else if (value instanceof Byte) {
-                return BYTE;
+                return SQSMessagingClientConstants.BYTE;
             } else if (value instanceof Double) {
-                return DOUBLE;
+                return SQSMessagingClientConstants.DOUBLE;
             } else if (value instanceof Float) {
-                return FLOAT;
+                return SQSMessagingClientConstants.FLOAT;
             } else if (value instanceof Short) {
-                return SHORT;
+                return SQSMessagingClientConstants.SHORT;
             } else {
                 throw new JMSException("Not a supported JMS property type");
             }
         }
 
         private static Object getObjectValue(String value, String type) throws JMSException {
-            if (INT.equals(type)) {
+            if (SQSMessagingClientConstants.INT.equals(type)) {
                 return Integer.valueOf(value);
-            } else if (LONG.equals(type)) {
+            } else if (SQSMessagingClientConstants.LONG.equals(type)) {
                 return Long.valueOf(value);
-            } else if (BOOLEAN.equals(type)) {
-                if (INT_TRUE.equals(value)) {
+            } else if (SQSMessagingClientConstants.BOOLEAN.equals(type)) {
+                if (SQSMessagingClientConstants.INT_TRUE.equals(value)) {
                     return Boolean.TRUE;
                 }
                 return Boolean.FALSE;
-            } else if (BYTE.equals(type)) {
+            } else if (SQSMessagingClientConstants.BYTE.equals(type)) {
                 return Byte.valueOf(value);
-            } else if (DOUBLE.equals(type)) {
+            } else if (SQSMessagingClientConstants.DOUBLE.equals(type)) {
                 return Double.valueOf(value);
-            } else if (FLOAT.equals(type)) {
+            } else if (SQSMessagingClientConstants.FLOAT.equals(type)) {
                 return Float.valueOf(value);
-            } else if (SHORT.equals(type)) {
+            } else if (SQSMessagingClientConstants.SHORT.equals(type)) {
                 return Short.valueOf(value);
-            } else if (type != null && (type.startsWith(STRING) || type.startsWith(NUMBER))) {
+            } else if (type != null && (type.startsWith(SQSMessagingClientConstants.STRING) || type.startsWith(SQSMessagingClientConstants.NUMBER))) {
                 return value;
             } else {
                 throw new JMSException(type + " is not a supported JMS property type");
@@ -1161,7 +1136,7 @@ public class SQSMessage implements Message {
      * This support the use case of send a received message by using the same JMSMessage object.
      *
      * @param sequenceNumber Sequence number to set. If null or empty, the stored sequence number will be removed.
-     * @throws JMSException
+     * @throws JMSException exception
      */
     public void setSequenceNumber(String sequenceNumber) throws JMSException {
         if (sequenceNumber == null || sequenceNumber.isEmpty()) {

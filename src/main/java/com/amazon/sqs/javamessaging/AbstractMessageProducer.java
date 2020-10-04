@@ -14,12 +14,7 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.message.SQSBytesMessage;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazon.sqs.javamessaging.message.SQSMessage.JMSMessagePropertyValue;
-import com.amazon.sqs.javamessaging.message.SQSObjectMessage;
-import com.amazon.sqs.javamessaging.message.SQSTextMessage;
-import com.amazon.sqs.javamessaging.util.JMSExceptionUtil;
+import com.amazon.sqs.javamessaging.SQSMessage.JMSMessagePropertyValue;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.util.Base64;
@@ -54,7 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * operation.
  * <p>
  */
-public abstract class AbstractMessageProducer implements QueueSender {
+abstract class AbstractMessageProducer implements QueueSender {
     private static final Log LOG = LogFactory.getLog(AbstractMessageProducer.class);
 
     private static final long MAXIMUM_DELIVERY_DELAY_MILLISECONDS = TimeUnit.MILLISECONDS.convert(15, TimeUnit.MINUTES);
@@ -103,7 +98,7 @@ public abstract class AbstractMessageProducer implements QueueSender {
         this.sqsDestination = (SQSQueueDestination) destination;
     }
 
-    protected abstract void sendMessageInternal(Queue queue, Message message, @SuppressWarnings("SameParameterValue") CompletionListener listener) throws JMSException;
+    abstract void sendMessageInternal(Queue queue, Message message, @SuppressWarnings("SameParameterValue") CompletionListener listener) throws JMSException;
 
     //region QueueSender Methods
     @Override

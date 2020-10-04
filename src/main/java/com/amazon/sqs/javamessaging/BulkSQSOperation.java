@@ -12,9 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.acknowledge;
-
-import com.amazon.sqs.javamessaging.SQSMessagingClientConstants;
+package com.amazon.sqs.javamessaging;
 
 import javax.jms.JMSException;
 
@@ -28,7 +26,7 @@ import java.util.Map.Entry;
  * This is used by different acknowledgers that requires partitioning of the
  * list, and execute actions on the partitions
  */
-public abstract class BulkSQSOperation {
+abstract class BulkSQSOperation {
 
     /**
      * Bulk action on list of message identifiers up to the provided index
@@ -37,8 +35,8 @@ public abstract class BulkSQSOperation {
      * @param indexOfMessage        The action will apply to all messages up to this index
      * @throws JMSException if <code>action</code> throws
      */
-    public void bulkAction(List<SQSMessageIdentifier> messageIdentifierList,
-                           int indexOfMessage) throws JMSException {
+    void bulkAction(List<SQSMessageIdentifier> messageIdentifierList,
+                    int indexOfMessage) throws JMSException {
 
         assert indexOfMessage > 0;
         assert indexOfMessage <= messageIdentifierList.size();
@@ -79,6 +77,5 @@ public abstract class BulkSQSOperation {
      *                       the messages.
      * @throws JMSException exception
      */
-    public abstract void action(String queueUrl, List<String> receiptHandles) throws JMSException;
-
+    abstract void action(String queueUrl, List<String> receiptHandles) throws JMSException;
 }

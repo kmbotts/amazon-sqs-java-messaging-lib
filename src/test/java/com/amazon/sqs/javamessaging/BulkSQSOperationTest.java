@@ -14,8 +14,6 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.BulkSQSOperation;
-import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
 import org.junit.Before;
 import org.junit.Test;
 

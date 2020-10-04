@@ -1,4 +1,4 @@
-package com.amazon.sqs.javamessaging.util;
+package com.amazon.sqs.javamessaging;
 
 import java.util.concurrent.ThreadFactory;
 

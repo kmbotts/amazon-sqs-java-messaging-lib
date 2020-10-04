@@ -12,9 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package com.amazon.sqs.javamessaging.message;
+package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.util.Base64;
 import com.amazonaws.util.StringUtils;
@@ -44,7 +43,7 @@ import java.io.Serializable;
  * MessageNotWriteableException is thrown. If clearBody is called, the message
  * can now be both read from and written to.
  */
-public class SQSObjectMessage extends SQSMessage implements ObjectMessage {
+class SQSObjectMessage extends SQSMessage implements ObjectMessage {
     private static final Log LOG = LogFactory.getLog(SQSObjectMessage.class);
 
     /**
@@ -55,7 +54,7 @@ public class SQSObjectMessage extends SQSMessage implements ObjectMessage {
     /**
      * Convert received SQSMessage into ObjectMessage
      */
-    public SQSObjectMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
+    SQSObjectMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
         super(acknowledger, queueUrl, sqsMessage);
         body = sqsMessage.getBody();
     }
