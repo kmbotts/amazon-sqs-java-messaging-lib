@@ -63,7 +63,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
 
     protected static final String ALL = "All";
 
-    private final AbstractSQSClientWrapper amazonSQSClient;
+    private final AbstractSQSClientWrapper sqsClientWrapper;
 
     private final String queueUrl;
 
@@ -88,7 +88,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
 
     private AbstractMessageConsumer messageConsumer;
 
-    private final SQSSessionCallbackScheduler sqsSessionRunnable;
+    private final SQSSessionCallbackScheduler callbackScheduler;
 
     /**
      * Counter on how many messages are prefetched into internal messageQueue.
@@ -124,21 +124,21 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
      */
     protected ExponentialBackoffStrategy backoffStrategy = new ExponentialBackoffStrategy(25, 25, 2000);
 
-    SQSMessageConsumerPrefetch(SQSSessionCallbackScheduler sqsSessionRunnable,
+    SQSMessageConsumerPrefetch(SQSSessionCallbackScheduler callbackScheduler,
                                Acknowledger acknowledger,
                                NegativeAcknowledger negativeAcknowledger,
                                SQSQueueDestination sqsDestination,
-                               AbstractSQSClientWrapper amazonSQSClient,
+                               AbstractSQSClientWrapper sqsClientWrapper,
                                int numberOfMessagesToPrefetch) {
 
-        this.amazonSQSClient = amazonSQSClient;
+        this.sqsClientWrapper = sqsClientWrapper;
         this.numberOfMessagesToPrefetch = numberOfMessagesToPrefetch;
 
         this.acknowledger = acknowledger;
         this.negativeAcknowledger = negativeAcknowledger;
         this.queueUrl = sqsDestination.getQueueUrl();
         this.sqsDestination = sqsDestination;
-        this.sqsSessionRunnable = sqsSessionRunnable;
+        this.callbackScheduler = callbackScheduler;
         this.messageQueue = new ArrayDeque<>(numberOfMessagesToPrefetch);
     }
 
@@ -176,7 +176,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
             }
 
             List<MessageManager> allPrefetchedMessages = new ArrayList<>(messageQueue);
-            sqsSessionRunnable.scheduleCallBacks(messageListener, allPrefetchedMessages);
+            callbackScheduler.scheduleCallBacks(messageListener, allPrefetchedMessages);
             messageQueue.clear();
 
             // This will request the first message if necessary.
@@ -262,7 +262,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
         if (sqsDestination.isFifo()) {
             receiveMessageRequest.withReceiveRequestAttemptId(UUID.randomUUID().toString());
         }
-        ReceiveMessageResult receivedMessageResult = amazonSQSClient.receiveMessage(receiveMessageRequest);
+        ReceiveMessageResult receivedMessageResult = sqsClientWrapper.receiveMessage(receiveMessageRequest);
         return receivedMessageResult.getMessages();
     }
 
@@ -287,7 +287,7 @@ public class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
 
         synchronized (stateLock) {
             if (messageListener != null) {
-                sqsSessionRunnable.scheduleCallBacks(messageListener, messageManagers);
+                callbackScheduler.scheduleCallBacks(messageListener, messageManagers);
             } else {
                 messageQueue.addAll(messageManagers);
             }

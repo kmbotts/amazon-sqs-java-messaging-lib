@@ -40,7 +40,7 @@ public class SendMessageAsyncHandler implements AsyncHandler<SendMessageRequest,
     public void onSuccess(SendMessageRequest request, SendMessageResult sendMessageResult) {
         try {
             String messageId = sendMessageResult.getMessageId();
-            message.setSQSMessageId(messageId);
+            message.setSQSMessageID(messageId);
 
             if (sendMessageResult.getSequenceNumber() != null) {
                 message.setSequenceNumber(sendMessageResult.getSequenceNumber());

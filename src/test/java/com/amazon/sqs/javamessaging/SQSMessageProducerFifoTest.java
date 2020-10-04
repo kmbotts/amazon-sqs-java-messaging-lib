@@ -220,7 +220,7 @@ public class SQSMessageProducerFifoTest {
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messageBody, SQSMessage.TEXT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID);
-        verify(msg).setSQSMessageId(MESSAGE_ID);
+        verify(msg).setSQSMessageID(MESSAGE_ID);
         verify(msg).setSequenceNumber(SEQ_NUMBER);
     }
 
@@ -261,7 +261,7 @@ public class SQSMessageProducerFifoTest {
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, "MessageBody", SQSMessage.TEXT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID);
-        verify(msg).setSQSMessageId(MESSAGE_ID);
+        verify(msg).setSQSMessageID(MESSAGE_ID);
         verify(msg).setSequenceNumber(SEQ_NUMBER_2);
     }
 
@@ -287,7 +287,7 @@ public class SQSMessageProducerFifoTest {
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, msgBody, SQSMessage.OBJECT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID);
-        verify(msg).setSQSMessageId(MESSAGE_ID);
+        verify(msg).setSQSMessageID(MESSAGE_ID);
         verify(msg).setSequenceNumber(SEQ_NUMBER);
     }
 
@@ -337,7 +337,7 @@ public class SQSMessageProducerFifoTest {
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messageBody, SQSMessage.OBJECT_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID);
-        verify(msg).setSQSMessageId(MESSAGE_ID);
+        verify(msg).setSQSMessageID(MESSAGE_ID);
         verify(msg).setSequenceNumber(SEQ_NUMBER_2);
     }
 
@@ -363,7 +363,7 @@ public class SQSMessageProducerFifoTest {
 
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID);
-        verify(msg).setSQSMessageId(MESSAGE_ID);
+        verify(msg).setSQSMessageID(MESSAGE_ID);
         verify(msg).setSequenceNumber(SEQ_NUMBER);
     }
 
@@ -406,7 +406,7 @@ public class SQSMessageProducerFifoTest {
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messageBody, SQSMessage.BYTE_MESSAGE_TYPE, GROUP_ID, DEDUP_ID)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID);
-        verify(msg).setSQSMessageId(MESSAGE_ID);
+        verify(msg).setSQSMessageID(MESSAGE_ID);
         verify(msg).setSequenceNumber(SEQ_NUMBER_2);
     }
 

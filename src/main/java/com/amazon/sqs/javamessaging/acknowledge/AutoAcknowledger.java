@@ -30,13 +30,13 @@ import java.util.List;
  * when the message listener the session has called to process the message
  * successfully returns.
  */
-public class AutoAcknowledger implements Acknowledger {
+class AutoAcknowledger implements Acknowledger {
 
-    private final AbstractSQSClientWrapper amazonSQSClient;
+    private final AbstractSQSClientWrapper sqsClientWrapper;
     private final AbstractSession session;
 
-    public AutoAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession session) {
-        this.amazonSQSClient = amazonSQSClient;
+    AutoAcknowledger(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session) {
+        this.sqsClientWrapper = sqsClientWrapper;
         this.session = session;
     }
 
@@ -46,7 +46,7 @@ public class AutoAcknowledger implements Acknowledger {
     @Override
     public void acknowledge(SQSMessage message) throws JMSException {
         session.checkClosed();
-        amazonSQSClient.deleteMessage(new DeleteMessageRequest(
+        sqsClientWrapper.deleteMessage(new DeleteMessageRequest(
                 message.getQueueUrl(), message.getReceiptHandle()));
     }
 

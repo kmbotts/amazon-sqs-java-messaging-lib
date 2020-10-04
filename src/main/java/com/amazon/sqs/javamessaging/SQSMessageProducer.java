@@ -59,7 +59,7 @@ public class SQSMessageProducer extends AbstractMessageProducer {
         String messageId = sendMessageResult.getMessageId();
         LOG.info("Message sent to SQS with SQS-assigned messageId: " + messageId);
         /* TODO: Do not support disableMessageID for now. */
-        sqsMessage.setSQSMessageId(messageId);
+        sqsMessage.setSQSMessageID(messageId);
 
         // if the message was sent to FIFO queue, the sequence number will be
         // set in the response

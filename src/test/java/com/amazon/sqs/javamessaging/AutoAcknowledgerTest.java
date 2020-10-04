@@ -14,19 +14,18 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSSession;
 import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazon.sqs.javamessaging.acknowledge.AutoAcknowledger;
+import com.amazon.sqs.javamessaging.acknowledge.Acknowledger;
 import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
 import com.amazon.sqs.javamessaging.message.SQSMessage;
 import com.amazonaws.services.sqs.model.DeleteMessageRequest;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import javax.jms.IllegalStateException;
+
 import java.util.Collections;
-import org.junit.Test;
-import org.junit.Before;
-import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -44,7 +43,7 @@ public class AutoAcknowledgerTest {
     private static final String QUEUE_URL = "QueueUrl";
     private static final String RECEIPT_HANDLE = "ReceiptHandle";
 
-    private AutoAcknowledger acknowledger;
+    private Acknowledger acknowledger;
     private AmazonSQSMessagingClientWrapper amazonSQSClient;
     private SQSSession session;
 
@@ -52,7 +51,7 @@ public class AutoAcknowledgerTest {
     public void before() throws Exception {
         amazonSQSClient = mock(AmazonSQSMessagingClientWrapper.class);
         session = mock(SQSSession.class);
-        acknowledger = (AutoAcknowledger) spy(AcknowledgeMode.ACK_AUTO.createAcknowledger(amazonSQSClient, session));
+        acknowledger = spy(AcknowledgeMode.ACK_AUTO.createAcknowledger(amazonSQSClient, session));
     }
 
     /**

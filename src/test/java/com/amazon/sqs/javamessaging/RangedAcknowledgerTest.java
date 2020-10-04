@@ -14,32 +14,28 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
+import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
+import com.amazon.sqs.javamessaging.message.SQSMessage;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
+import junit.framework.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
+import javax.jms.JMSException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.jms.JMSException;
-
-import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
-import com.amazon.sqs.javamessaging.SQSSession;
-import com.amazon.sqs.javamessaging.acknowledge.AcknowledgeMode;
-import com.amazon.sqs.javamessaging.acknowledge.SQSMessageIdentifier;
-import com.amazon.sqs.javamessaging.message.SQSMessage;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-
-import junit.framework.Assert;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 
 /**
@@ -73,9 +69,9 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
         int populateMessageSize = 34;
         populateMessage(populateMessageSize);
         int ackMessage = 33;
-        
+
         testAcknowledge(populateMessageSize, ackMessage);
-        
+
         Assert.assertEquals(0, acknowledger.getUnAckMessages().size());
     }
 
@@ -92,7 +88,7 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
 
         ArgumentCaptor<DeleteMessageBatchRequest> argumentCaptor = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
         verify(amazonSQSClient, times(5)).deleteMessageBatch(argumentCaptor.capture());
-        
+
         //key is the queue url
         //value is the sequence of sizes of expected batches
         Map<String, List<Integer>> expectedCalls = new HashMap<String, List<Integer>>();
@@ -107,7 +103,7 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
         List<Integer> queue2Calls = new ArrayList<Integer>();
         queue2Calls.add(4);
         expectedCalls.put(baseQueueUrl + 2, queue2Calls);
-        
+
         for (DeleteMessageBatchRequest request : argumentCaptor.getAllValues()) {
             String queueUrl = request.getQueueUrl();
             List<Integer> expectedSequence = expectedCalls.get(queueUrl);
@@ -119,7 +115,7 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
                 expectedCalls.remove(queueUrl);
             }
         }
-        
+
         assertTrue(expectedCalls.isEmpty());
     }
 
@@ -140,6 +136,7 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
 
     /**
      * Utility function to acknowledge the first <code>indexOfMessageToAck<code/> un-acknowledge messages
+     *
      * @param populateMessageSize current un-acknowledge messages size
      * @param indexOfMessageToAck index of message to acknowledge
      */
@@ -149,8 +146,12 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
 
         for (int i = 0; i < indexOfMessageToAck; i++) {
             SQSMessage message = populatedMessages.get(i);
-            SQSMessageIdentifier sqsMessageIdentifier = new SQSMessageIdentifier(message.getQueueUrl(), message.getReceiptHandle(),
-                    message.getSQSMessageId());
+            SQSMessageIdentifier sqsMessageIdentifier =
+                    SQSMessageIdentifier.builder()
+                            .queueUrl(message.getQueueUrl())
+                            .receiptHandle(message.getReceiptHandle())
+                            .SQSMessageID(message.getSQSMessageID())
+                            .build();
             Assert.assertFalse(acknowledger.getUnAckMessages().contains(sqsMessageIdentifier));
         }
 

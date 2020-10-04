@@ -39,17 +39,17 @@ import java.util.Queue;
  * <p>
  * This class is not safe for concurrent use.
  */
-public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger {
+class RangedAcknowledger extends BulkSQSOperation implements Acknowledger {
     private static final Log LOG = LogFactory.getLog(RangedAcknowledger.class);
 
-    private final AbstractSQSClientWrapper amazonSQSClient;
+    private final AbstractSQSClientWrapper sqsClientWrapper;
 
     private final AbstractSession session;
 
     private final Queue<SQSMessageIdentifier> unAckMessages;
 
-    public RangedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession session) {
-        this.amazonSQSClient = amazonSQSClient;
+    RangedAcknowledger(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session) {
+        this.sqsClientWrapper = sqsClientWrapper;
         this.session = session;
         this.unAckMessages = new LinkedList<>();
     }
@@ -73,7 +73,7 @@ public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger
           the messages received before that
          */
         if (indexOfMessage == -1) {
-            LOG.warn("SQSMessageID: " + message.getSQSMessageId() + " with SQSMessageReceiptHandle: " +
+            LOG.warn("SQSMessageID: " + message.getSQSMessageID() + " with SQSMessageReceiptHandle: " +
                     message.getReceiptHandle() + " does not exist.");
         } else {
             bulkAction(getUnAckMessages(), indexOfMessage);
@@ -152,6 +152,6 @@ public class RangedAcknowledger extends BulkSQSOperation implements Acknowledger
           the batch will not be deleted, and will be visible and delivered as
           duplicate after visibility timeout expires.
          */
-        amazonSQSClient.deleteMessageBatch(deleteMessageBatchRequest);
+        sqsClientWrapper.deleteMessageBatch(deleteMessageBatchRequest);
     }
 }

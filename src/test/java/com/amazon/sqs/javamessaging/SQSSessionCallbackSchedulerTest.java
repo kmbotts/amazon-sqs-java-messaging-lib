@@ -126,7 +126,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage = mock(SQSMessage.class);
         when(sqsMessage.getReceiptHandle())
                 .thenReturn("r1");
-        when(sqsMessage.getSQSMessageId())
+        when(sqsMessage.getSQSMessageID())
                 .thenReturn("messageId1");
         when(sqsMessage.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
@@ -167,7 +167,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage = mock(SQSMessage.class);
         when(sqsMessage.getReceiptHandle())
                 .thenReturn("r2");
-        when(sqsMessage.getSQSMessageId())
+        when(sqsMessage.getSQSMessageID())
                 .thenReturn("messageId2");
         when(sqsMessage.getQueueUrl())
                 .thenReturn(QUEUE_URL_2);
@@ -217,7 +217,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage1 = mock(SQSMessage.class);
         when(sqsMessage1.getReceiptHandle())
                 .thenReturn("r1");
-        when(sqsMessage1.getSQSMessageId())
+        when(sqsMessage1.getSQSMessageID())
                 .thenReturn("messageId1");
         when(sqsMessage1.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
@@ -232,7 +232,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage2 = mock(SQSMessage.class);
         when(sqsMessage2.getReceiptHandle())
                 .thenReturn("r2");
-        when(sqsMessage2.getSQSMessageId())
+        when(sqsMessage2.getSQSMessageID())
                 .thenReturn("messageId2");
         when(sqsMessage2.getQueueUrl())
                 .thenReturn(QUEUE_URL_2);
@@ -257,8 +257,16 @@ public class SQSSessionCallbackSchedulerTest {
                 .thenReturn(entry2);
 
         List<SQSMessageIdentifier> nackMessageIdentifiers = new ArrayList<SQSMessageIdentifier>();
-        nackMessageIdentifiers.add(new SQSMessageIdentifier(QUEUE_URL_1, "r1", "messageId1"));
-        nackMessageIdentifiers.add(new SQSMessageIdentifier(QUEUE_URL_2, "r2", "messageId2"));
+        nackMessageIdentifiers.add(SQSMessageIdentifier.builder()
+                .queueUrl(QUEUE_URL_1)
+                .receiptHandle("r1")
+                .SQSMessageID("messageId1")
+                .build());
+        nackMessageIdentifiers.add(SQSMessageIdentifier.builder()
+                .queueUrl(QUEUE_URL_2)
+                .receiptHandle("r2")
+                .SQSMessageID("messageId2")
+                .build());
 
         /*
          * Nack the messages
@@ -388,7 +396,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage1 = mock(SQSMessage.class);
         when(sqsMessage1.getReceiptHandle())
                 .thenReturn("r1");
-        when(sqsMessage1.getSQSMessageId())
+        when(sqsMessage1.getSQSMessageID())
                 .thenReturn("messageId1");
         when(sqsMessage1.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
@@ -463,7 +471,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage1 = mock(SQSMessage.class);
         when(sqsMessage1.getReceiptHandle())
                 .thenReturn("r1");
-        when(sqsMessage1.getSQSMessageId())
+        when(sqsMessage1.getSQSMessageID())
                 .thenReturn("messageId1");
         when(sqsMessage1.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
@@ -565,7 +573,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage1 = mock(SQSMessage.class);
         when(sqsMessage1.getReceiptHandle())
                 .thenReturn("r1");
-        when(sqsMessage1.getSQSMessageId())
+        when(sqsMessage1.getSQSMessageID())
                 .thenReturn("messageId1");
         when(sqsMessage1.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
@@ -673,7 +681,7 @@ public class SQSSessionCallbackSchedulerTest {
         SQSMessage sqsMessage = mock(SQSMessage.class);
         when(sqsMessage.getReceiptHandle())
                 .thenReturn("r" + index);
-        when(sqsMessage.getSQSMessageId())
+        when(sqsMessage.getSQSMessageID())
                 .thenReturn("messageId" + index);
         when(sqsMessage.getQueueUrl())
                 .thenReturn(QUEUE_URL_PREFIX + index);

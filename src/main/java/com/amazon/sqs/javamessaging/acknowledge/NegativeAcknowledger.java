@@ -40,10 +40,10 @@ public class NegativeAcknowledger extends BulkSQSOperation {
 
     private static final int NACK_TIMEOUT = 0;
 
-    private final AbstractSQSClientWrapper amazonSQSClient;
+    private final AbstractSQSClientWrapper sqsClientWrapper;
 
-    public NegativeAcknowledger(AbstractSQSClientWrapper amazonSQSClient) {
-        this.amazonSQSClient = amazonSQSClient;
+    public NegativeAcknowledger(AbstractSQSClientWrapper sqsClientWrapper) {
+        this.sqsClientWrapper = sqsClientWrapper;
     }
 
     /**
@@ -95,7 +95,7 @@ public class NegativeAcknowledger extends BulkSQSOperation {
             nackEntries.add(changeMessageVisibilityBatchRequestEntry);
             batchId++;
         }
-        amazonSQSClient.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(
+        sqsClientWrapper.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(
                 queueUrl, nackEntries));
     }
 

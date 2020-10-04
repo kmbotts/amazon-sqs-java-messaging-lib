@@ -206,7 +206,7 @@ public abstract class AbstractSession implements QueueSession {
         this.messageConsumers = Optional.ofNullable(messageConsumers).orElse(Collections.newSetFromMap(new ConcurrentHashMap<>()));
         this.messageProducers = Optional.ofNullable(messageProducers).orElse(Collections.newSetFromMap(new ConcurrentHashMap<>()));
 
-        executor.execute(callbackScheduler);
+        this.executor.execute(callbackScheduler);
     }
 
     protected abstract AbstractMessageProducer createMessageProducer(AbstractSQSClientWrapper sqsClientWrapper,

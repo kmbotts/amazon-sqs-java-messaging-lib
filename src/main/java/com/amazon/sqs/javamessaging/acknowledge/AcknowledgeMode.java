@@ -57,18 +57,18 @@ public enum AcknowledgeMode {
      * Creates the acknowledger associated with the session, which will be used
      * to acknowledge the delivered messages on consumers of the session.
      *
-     * @param amazonSQSClient  the SQS client to delete messages
-     * @param parentSQSSession the associated session for the acknowledger
+     * @param sqsClientWrapper the SQS client to delete messages
+     * @param session          the associated session for the acknowledger
      * @throws JMSException If invalid acknowledge mode is used.
      */
-    public Acknowledger createAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession parentSQSSession) throws JMSException {
+    public Acknowledger createAcknowledger(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session) throws JMSException {
         switch (this) {
             case ACK_AUTO:
-                return new AutoAcknowledger(amazonSQSClient, parentSQSSession);
+                return new AutoAcknowledger(sqsClientWrapper, session);
             case ACK_RANGE:
-                return new RangedAcknowledger(amazonSQSClient, parentSQSSession);
+                return new RangedAcknowledger(sqsClientWrapper, session);
             case ACK_UNORDERED:
-                return new UnorderedAcknowledger(amazonSQSClient, parentSQSSession);
+                return new UnorderedAcknowledger(sqsClientWrapper, session);
             default:
                 throw new JMSException(this + " - AcknowledgeMode does not exist");
         }

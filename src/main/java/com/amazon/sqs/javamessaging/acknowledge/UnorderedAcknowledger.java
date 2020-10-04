@@ -31,7 +31,7 @@ import java.util.Map;
  * <p>
  * This class is not safe for concurrent use.
  */
-public class UnorderedAcknowledger implements Acknowledger {
+class UnorderedAcknowledger implements Acknowledger {
 
     private final AbstractSQSClientWrapper amazonSQSClient;
 
@@ -41,7 +41,7 @@ public class UnorderedAcknowledger implements Acknowledger {
     // identifier
     private final Map<String, SQSMessageIdentifier> unAckMessages;
 
-    public UnorderedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession session) {
+    UnorderedAcknowledger(AbstractSQSClientWrapper amazonSQSClient, AbstractSession session) {
         this.amazonSQSClient = amazonSQSClient;
         this.session = session;
         this.unAckMessages = new HashMap<>();

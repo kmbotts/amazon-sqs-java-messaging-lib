@@ -116,7 +116,7 @@ public class SQSMessage implements Message {
     /**
      * Original SQS Message ID.
      */
-    private String sqsMessageID;
+    private String SQSMessageID;
 
     /**
      * QueueUrl the message came from.
@@ -135,7 +135,7 @@ public class SQSMessage implements Message {
         this.acknowledger = acknowledger;
         this.queueUrl = queueUrl;
         receiptHandle = sqsMessage.getReceiptHandle();
-        this.setSQSMessageId(sqsMessage.getMessageId());
+        this.setSQSMessageID(sqsMessage.getMessageId());
         Map<String, String> systemAttributes = sqsMessage.getAttributes();
         int receiveCount = Integer.parseInt(systemAttributes.get(APPROXIMATE_RECEIVE_COUNT));
 
@@ -245,18 +245,18 @@ public class SQSMessage implements Message {
      *
      * @return SQS Message Id.
      */
-    public String getSQSMessageId() {
-        return sqsMessageID;
+    public String getSQSMessageID() {
+        return SQSMessageID;
     }
 
     /**
      * Set SQS Message Id, used on send.
      *
-     * @param sqsMessageID messageId assigned by SQS during send.
+     * @param SQSMessageID messageId assigned by SQS during send.
      */
-    public void setSQSMessageId(String sqsMessageID) throws JMSException {
-        this.sqsMessageID = sqsMessageID;
-        this.setJMSMessageID(String.format(SQSMessagingClientConstants.MESSAGE_ID_FORMAT, sqsMessageID));
+    public void setSQSMessageID(String SQSMessageID) throws JMSException {
+        this.SQSMessageID = SQSMessageID;
+        this.setJMSMessageID(String.format(SQSMessagingClientConstants.MESSAGE_ID_FORMAT, SQSMessageID));
     }
 
     /**

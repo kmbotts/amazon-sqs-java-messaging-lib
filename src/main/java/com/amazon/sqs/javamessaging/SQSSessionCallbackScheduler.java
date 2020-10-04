@@ -161,7 +161,7 @@ class SQSSessionCallbackScheduler implements Runnable {
                                     messageListener.onMessage(message);
                                 } catch (Throwable ex) {
                                     LOG.info("Exception thrown from onMessage callback for message " +
-                                            message.getSQSMessageId(), ex);
+                                            message.getSQSMessageID(), ex);
                                     callbackFailed = true;
                                 } finally {
                                     if (!callbackFailed) {
@@ -175,7 +175,7 @@ class SQSSessionCallbackScheduler implements Runnable {
                         } catch (JMSException ex) {
                             LOG.warn(
                                     "Unable to complete message dispatch for the message " +
-                                            message.getSQSMessageId(), ex);
+                                            message.getSQSMessageID(), ex);
                         } finally {
                             if (tryNack) {
                                 nackReceivedMessage(message);
@@ -261,7 +261,7 @@ class SQSSessionCallbackScheduler implements Runnable {
 
             negativeAcknowledger.bulkAction(nackMessageIdentifiers, nackMessageIdentifiers.size());
         } catch (JMSException e) {
-            LOG.warn("Unable to nack the message " + message.getSQSMessageId(), e);
+            LOG.warn("Unable to nack the message " + message.getSQSMessageID(), e);
         }
     }
 

@@ -37,8 +37,8 @@ public abstract class BulkSQSOperation {
      * @param indexOfMessage        The action will apply to all messages up to this index
      * @throws JMSException if <code>action</code> throws
      */
-    public void bulkAction(List<SQSMessageIdentifier> messageIdentifierList, int indexOfMessage)
-            throws JMSException {
+    public void bulkAction(List<SQSMessageIdentifier> messageIdentifierList,
+                           int indexOfMessage) throws JMSException {
 
         assert indexOfMessage > 0;
         assert indexOfMessage <= messageIdentifierList.size();
@@ -77,7 +77,7 @@ public abstract class BulkSQSOperation {
      * @param queueUrl       queueUrl of the queue, which the receipt handles belong
      * @param receiptHandles the list of handles, which is be used to (negative)acknowledge
      *                       the messages.
-     * @throws JMSException
+     * @throws JMSException exception
      */
     public abstract void action(String queueUrl, List<String> receiptHandles) throws JMSException;
 

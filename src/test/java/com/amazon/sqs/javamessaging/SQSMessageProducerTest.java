@@ -341,8 +341,8 @@ public class SQSMessageProducerTest {
         verify(msg, times(2)).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_1);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_2);
-        verify(msg).setSQSMessageId(MESSAGE_ID_1);
-        verify(msg).setSQSMessageId(MESSAGE_ID_2);
+        verify(msg).setSQSMessageID(MESSAGE_ID_1);
+        verify(msg).setSQSMessageID(MESSAGE_ID_2);
     }
 
     /**
@@ -380,7 +380,7 @@ public class SQSMessageProducerTest {
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messagesBody, mapMessageAttributes)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_1);
-        verify(msg).setSQSMessageId(MESSAGE_ID_1);
+        verify(msg).setSQSMessageID(MESSAGE_ID_1);
     }
 
     /**
@@ -412,17 +412,17 @@ public class SQSMessageProducerTest {
         msg.setObject(set2);
         String megBody2 = msg.getMessageBody();
         producer.sendMessageInternal(destination, msg, null);
-        
+
         ArgumentCaptor<SendMessageRequest> argumentCaptor = ArgumentCaptor.forClass(SendMessageRequest.class);
         verify(amazonSQSClient, times(2)).sendMessage(argumentCaptor.capture());
-        
+
         assertEquals(megBody1, argumentCaptor.getAllValues().get(0).getMessageBody());
         assertEquals(megBody2, argumentCaptor.getAllValues().get(1).getMessageBody());
         verify(msg, times(2)).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_1);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_2);
-        verify(msg).setSQSMessageId(MESSAGE_ID_1);
-        verify(msg).setSQSMessageId(MESSAGE_ID_2);
+        verify(msg).setSQSMessageID(MESSAGE_ID_1);
+        verify(msg).setSQSMessageID(MESSAGE_ID_2);
     }
 
     /**
@@ -472,7 +472,7 @@ public class SQSMessageProducerTest {
                 messageAttributes)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_1);
-        verify(msg).setSQSMessageId(MESSAGE_ID_1);
+        verify(msg).setSQSMessageID(MESSAGE_ID_1);
     }
 
     /**
@@ -503,13 +503,13 @@ public class SQSMessageProducerTest {
 
         List<String> messagesBody = Arrays.asList("AA==", "AAAAKg==");
         verify(amazonSQSClient, times(2)).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messagesBody,
-                                                                                            messageAttributes)));
+                messageAttributes)));
 
         verify(msg, times(2)).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_1);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_2);
-        verify(msg).setSQSMessageId(MESSAGE_ID_1);
-        verify(msg).setSQSMessageId(MESSAGE_ID_2);
+        verify(msg).setSQSMessageID(MESSAGE_ID_1);
+        verify(msg).setSQSMessageID(MESSAGE_ID_2);
     }
 
     /**
@@ -552,7 +552,7 @@ public class SQSMessageProducerTest {
                 messageAttributes)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_1);
-        verify(msg).setSQSMessageId(MESSAGE_ID_1);
+        verify(msg).setSQSMessageID(MESSAGE_ID_1);
     }
 
     /**
