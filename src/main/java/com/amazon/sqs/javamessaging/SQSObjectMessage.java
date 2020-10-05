@@ -48,7 +48,7 @@ class SQSObjectMessage extends SQSMessage implements ObjectMessage {
     /**
      * Convert received SQSMessage into ObjectMessage
      */
-    SQSObjectMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
+    SQSObjectMessage(Contracts.Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
         super(acknowledger, queueUrl, sqsMessage);
         body = sqsMessage.getBody();
     }

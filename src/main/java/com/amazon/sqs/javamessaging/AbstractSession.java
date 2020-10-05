@@ -137,7 +137,7 @@ abstract class AbstractSession implements QueueSession {
      * Acknowledger of this Session.
      */
     @Getter(value = AccessLevel.PACKAGE)
-    private final Acknowledger acknowledger;
+    private final Contracts.Acknowledger acknowledger;
 
     /**
      * Negative acknowledger of this Session

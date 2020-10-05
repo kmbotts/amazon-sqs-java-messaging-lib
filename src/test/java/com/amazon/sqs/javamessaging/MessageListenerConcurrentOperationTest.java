@@ -78,7 +78,7 @@ public class MessageListenerConcurrentOperationTest {
     @Before
     public void Setup() throws JMSException {
 
-        Acknowledger acknowledger = mock(Acknowledger.class);
+        Contracts.Acknowledger acknowledger = mock(Contracts.Acknowledger.class);
         NegativeAcknowledger negativeAcknowledger = mock(NegativeAcknowledger.class);
         SQSQueueDestination sqsDestination = new SQSQueueDestination(QUEUE_NAME, QUEUE_URL);
         amazonSQSClient = mock(AmazonSQSMessagingClientWrapper.class);

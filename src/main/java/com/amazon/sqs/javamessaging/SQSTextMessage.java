@@ -42,7 +42,7 @@ class SQSTextMessage extends SQSMessage implements TextMessage {
     /**
      * Convert received SQSMessage into TextMessage.
      */
-    SQSTextMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
+    SQSTextMessage(Contracts.Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
         super(acknowledger, queueUrl, sqsMessage);
         this.text = sqsMessage.getBody();
     }

@@ -152,7 +152,7 @@ public class NegativeAcknowledgerTest extends AcknowledgerCommon {
         ArrayDeque<FetchedMessage> messageQueue =
                 new ArrayDeque<FetchedMessage>();
 
-        PrefetchManager prefetchManager = mock(PrefetchManager.class);
+        Contracts.PrefetchManager prefetchManager = mock(Contracts.PrefetchManager.class);
         for (int i = 0; i < count; ++i) {
             SQSMessage msg = mock(SQSMessage.class);
             when(msg.getReceiptHandle()).thenReturn("r" + i);

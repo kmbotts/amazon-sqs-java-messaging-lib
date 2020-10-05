@@ -48,7 +48,7 @@ public class SQSMessageConsumerTest {
     private SQSConnection sqsConnection;
     private SQSSession sqsSession;
     private SQSSessionCallbackScheduler sqsSessionRunnable;
-    private Acknowledger acknowledger;
+    private Contracts.Acknowledger acknowledger;
 
     private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(5);
     private SQSMessageConsumerPrefetch sqsMessageConsumerPrefetch;
@@ -64,7 +64,7 @@ public class SQSMessageConsumerTest {
         sqsSession = spy(new SQSSession(sqsConnection, AcknowledgeMode.ACK_AUTO, null, null));
         sqsSessionRunnable = mock(SQSSessionCallbackScheduler.class);
 
-        acknowledger = mock(Acknowledger.class);
+        acknowledger = mock(Contracts.Acknowledger.class);
 
         negativeAcknowledger = mock(NegativeAcknowledger.class);
 

@@ -50,7 +50,7 @@ class SQSSessionCallbackScheduler implements Runnable {
 
     private final NegativeAcknowledger negativeAcknowledger;
 
-    private final Acknowledger acknowledger;
+    private final Contracts.Acknowledger acknowledger;
 
     /**
      * Only set from the callback thread to transfer the ownership of closing
@@ -67,7 +67,7 @@ class SQSSessionCallbackScheduler implements Runnable {
     @Builder(access = AccessLevel.PACKAGE)
     SQSSessionCallbackScheduler(AbstractSession sessionDelegate,
                                 AcknowledgeMode acknowledgeMode,
-                                Acknowledger acknowledger,
+                                Contracts.Acknowledger acknowledger,
                                 NegativeAcknowledger negativeAcknowledger,
                                 Deque<CallbackEntry> callbackQueue) {
 

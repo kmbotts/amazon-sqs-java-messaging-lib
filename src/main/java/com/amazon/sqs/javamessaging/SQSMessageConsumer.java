@@ -40,7 +40,7 @@ class SQSMessageConsumer extends AbstractMessageConsumer {
                        AbstractSession session,
                        SQSSessionCallbackScheduler callbackScheduler,
                        SQSQueueDestination destination,
-                       Acknowledger acknowledger,
+                       Contracts.Acknowledger acknowledger,
                        NegativeAcknowledger negativeAcknowledger,
                        ThreadFactory threadFactory,
                        SQSMessageConsumerPrefetch consumerPrefetch) {

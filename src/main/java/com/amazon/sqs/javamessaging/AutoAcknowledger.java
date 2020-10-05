@@ -27,7 +27,7 @@ import java.util.List;
  * when the message listener the session has called to process the message
  * successfully returns.
  */
-class AutoAcknowledger implements Acknowledger {
+class AutoAcknowledger implements Contracts.Acknowledger {
 
     private final AbstractSQSClientWrapper sqsClientWrapper;
     private final AbstractSession session;

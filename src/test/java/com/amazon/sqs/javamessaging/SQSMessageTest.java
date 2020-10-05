@@ -245,7 +245,7 @@ public class SQSMessageTest {
     @Test
     public void testSQSMessageAttributeToProperty() throws JMSException {
 
-        Acknowledger ack = Mockito.mock(Acknowledger.class);
+        Contracts.Acknowledger ack = Mockito.mock(Contracts.Acknowledger.class);
 
         Map<String, String> systemAttributes = new HashMap<>();
         systemAttributes.put(SQSMessagingClientConstants.APPROXIMATE_RECEIVE_COUNT, "100");
@@ -374,7 +374,7 @@ public class SQSMessageTest {
         public TestSQSMessage() {
         }
 
-        public TestSQSMessage(Acknowledger acknowledger, String queueUrl, com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
+        public TestSQSMessage(Contracts.Acknowledger acknowledger, String queueUrl, com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
             super(acknowledger, queueUrl, sqsMessage);
         }
 

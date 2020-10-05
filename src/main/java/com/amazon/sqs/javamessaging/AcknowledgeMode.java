@@ -58,7 +58,7 @@ enum AcknowledgeMode {
      * @param session          the associated session for the acknowledger
      * @throws JMSException If invalid acknowledge mode is used.
      */
-    Acknowledger createAcknowledger(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session) throws JMSException {
+    Contracts.Acknowledger createAcknowledger(AbstractSQSClientWrapper sqsClientWrapper, AbstractSession session) throws JMSException {
         switch (this) {
             case ACK_AUTO:
                 return new AutoAcknowledger(sqsClientWrapper, session);

@@ -49,7 +49,7 @@ public class SQSSessionCallbackSchedulerTest {
     private SQSConnection sqsConnection;
     private AmazonSQSMessagingClientWrapper sqsClient;
     private ArrayDeque<CallbackEntry> callbackQueue;
-    private Acknowledger acknowledger;
+    private Contracts.Acknowledger acknowledger;
     private AbstractMessageConsumer consumer;
 
     @Before
@@ -69,7 +69,7 @@ public class SQSSessionCallbackSchedulerTest {
 
         callbackQueue = Mockito.mock(ArrayDeque.class);
 
-        acknowledger = Mockito.mock(Acknowledger.class);
+        acknowledger = Mockito.mock(Contracts.Acknowledger.class);
 
         consumer = Mockito.mock(SQSMessageConsumer.class);
 
@@ -122,7 +122,7 @@ public class SQSSessionCallbackSchedulerTest {
                 .thenReturn(sqsMessage);
 
         Mockito.when(msgManager.getPrefetchManager())
-                .thenReturn(Mockito.mock(PrefetchManager.class));
+                .thenReturn(Mockito.mock(Contracts.PrefetchManager.class));
 
         CallbackEntry entry1 = new CallbackEntry(msgListener, msgManager);
 
@@ -163,7 +163,7 @@ public class SQSSessionCallbackSchedulerTest {
                 .thenReturn(sqsMessage);
 
         Mockito.when(msgManager.getPrefetchManager())
-                .thenReturn(Mockito.mock(PrefetchManager.class));
+                .thenReturn(Mockito.mock(Contracts.PrefetchManager.class));
 
 
         CallbackEntry entry1 = new CallbackEntry(msgListener, msgManager);
@@ -213,7 +213,7 @@ public class SQSSessionCallbackSchedulerTest {
                 .thenReturn(sqsMessage1);
 
         Mockito.when(msgManager1.getPrefetchManager())
-                .thenReturn(Mockito.mock(PrefetchManager.class));
+                .thenReturn(Mockito.mock(Contracts.PrefetchManager.class));
 
         SQSMessage sqsMessage2 = Mockito.mock(SQSMessage.class);
         Mockito.when(sqsMessage2.getReceiptHandle())
@@ -228,7 +228,7 @@ public class SQSSessionCallbackSchedulerTest {
                 .thenReturn(sqsMessage2);
 
         Mockito.when(msgManager2.getPrefetchManager())
-                .thenReturn(Mockito.mock(PrefetchManager.class));
+                .thenReturn(Mockito.mock(Contracts.PrefetchManager.class));
 
         CallbackEntry entry1 = new CallbackEntry(msgListener, msgManager1);
         CallbackEntry entry2 = new CallbackEntry(msgListener, msgManager2);
@@ -280,7 +280,7 @@ public class SQSSessionCallbackSchedulerTest {
         Mockito.doNothing()
                 .when(sqsSessionRunnable).nackQueuedMessages();
 
-        PrefetchManager prefetchManager = Mockito.mock(PrefetchManager.class);
+        Contracts.PrefetchManager prefetchManager = Mockito.mock(Contracts.PrefetchManager.class);
         Mockito.when(prefetchManager.getMessageConsumer())
                 .thenReturn(consumer);
 
@@ -387,7 +387,7 @@ public class SQSSessionCallbackSchedulerTest {
         Mockito.when(sqsMessage1.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
 
-        PrefetchManager prefetchManager = Mockito.mock(PrefetchManager.class);
+        Contracts.PrefetchManager prefetchManager = Mockito.mock(Contracts.PrefetchManager.class);
         Mockito.when(prefetchManager.getMessageConsumer())
                 .thenReturn(consumer);
 
@@ -462,7 +462,7 @@ public class SQSSessionCallbackSchedulerTest {
         Mockito.when(sqsMessage1.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
 
-        PrefetchManager prefetchManager = Mockito.mock(PrefetchManager.class);
+        Contracts.PrefetchManager prefetchManager = Mockito.mock(Contracts.PrefetchManager.class);
         Mockito.when(prefetchManager.getMessageConsumer())
                 .thenReturn(consumer);
 
@@ -568,7 +568,7 @@ public class SQSSessionCallbackSchedulerTest {
         Mockito.when(sqsMessage1.getQueueUrl())
                 .thenReturn(QUEUE_URL_1);
 
-        PrefetchManager prefetchManager = Mockito.mock(PrefetchManager.class);
+        Contracts.PrefetchManager prefetchManager = Mockito.mock(Contracts.PrefetchManager.class);
         Mockito.when(prefetchManager.getMessageConsumer())
                 .thenReturn(consumer);
 
@@ -663,7 +663,7 @@ public class SQSSessionCallbackSchedulerTest {
         attributes.put(SQSMessagingClientConstants.APPROXIMATE_RECEIVE_COUNT, "0");
         message.setAttributes(attributes);
         SQSMessage sqsMessage = new SQSTextMessage(acknowledger, queueUrl, message);
-        PrefetchManager prefetchManager = Mockito.mock(PrefetchManager.class);
+        Contracts.PrefetchManager prefetchManager = Mockito.mock(Contracts.PrefetchManager.class);
         Mockito.when(prefetchManager.getMessageConsumer())
                 .thenReturn(consumer);
         FetchedMessage msgManager = new FetchedMessage(prefetchManager, sqsMessage);
@@ -679,7 +679,7 @@ public class SQSSessionCallbackSchedulerTest {
         Mockito.when(sqsMessage.getQueueUrl())
                 .thenReturn(QUEUE_URL_PREFIX + index);
 
-        PrefetchManager prefetchManager = Mockito.mock(PrefetchManager.class);
+        Contracts.PrefetchManager prefetchManager = Mockito.mock(Contracts.PrefetchManager.class);
         Mockito.when(prefetchManager.getMessageConsumer())
                 .thenReturn(consumer);
 

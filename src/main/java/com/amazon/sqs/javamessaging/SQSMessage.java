@@ -95,7 +95,7 @@ abstract class SQSMessage implements Message, Cloneable {
     /**
      * Function for acknowledging message.
      */
-    private Acknowledger acknowledger;
+    private Contracts.Acknowledger acknowledger;
 
     /**
      * Original SQS Message ID.
@@ -119,7 +119,7 @@ abstract class SQSMessage implements Message, Cloneable {
      * This is called at the receiver side to create a
      * JMS message from the SQS message received.
      */
-    SQSMessage(Acknowledger acknowledger,
+    SQSMessage(Contracts.Acknowledger acknowledger,
                String queueUrl,
                com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
         this.acknowledger = acknowledger;

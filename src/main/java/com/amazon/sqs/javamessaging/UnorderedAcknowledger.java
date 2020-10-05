@@ -28,7 +28,7 @@ import java.util.Map;
  * <p>
  * This class is not safe for concurrent use.
  */
-class UnorderedAcknowledger implements Acknowledger {
+class UnorderedAcknowledger implements Contracts.Acknowledger {
 
     private final AbstractSQSClientWrapper amazonSQSClient;
 

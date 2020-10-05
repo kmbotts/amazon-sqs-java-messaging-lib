@@ -39,7 +39,7 @@ public class AutoAcknowledgerTest {
     private static final String QUEUE_URL = "QueueUrl";
     private static final String RECEIPT_HANDLE = "ReceiptHandle";
 
-    private Acknowledger acknowledger;
+    private Contracts.Acknowledger acknowledger;
     private AmazonSQSMessagingClientWrapper amazonSQSClient;
     private SQSSession session;
 

@@ -70,7 +70,7 @@ public class SQSMessageProducerTest {
     private SQSSession sqsSession;
     private SQSConnection sqsConnection;
     private AmazonSQSMessagingClientWrapper amazonSQSClient;
-    private Acknowledger acknowledger;
+    private Contracts.Acknowledger acknowledger;
 
     @Before
     public void setup() throws JMSException {
@@ -78,7 +78,7 @@ public class SQSMessageProducerTest {
         amazonSQSClient = mock(AmazonSQSMessagingClientWrapper.class);
         sqsConnection = mock(SQSConnection.class);
 
-        acknowledger = mock(Acknowledger.class);
+        acknowledger = mock(Contracts.Acknowledger.class);
 
         sqsSession = mock(SQSSession.class);
         destination = new SQSQueueDestination(QUEUE_NAME, QUEUE_URL);

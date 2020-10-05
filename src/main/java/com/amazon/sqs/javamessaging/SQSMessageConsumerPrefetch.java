@@ -47,7 +47,7 @@ import java.util.UUID;
  * <p>
  * Add re-tries on top of <code>AmazonSQSClient</code> re-tries on SQS calls.
  */
-class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
+class SQSMessageConsumerPrefetch implements Runnable, Contracts.PrefetchManager {
 
     private static final Log LOG = LogFactory.getLog(SQSMessageConsumerPrefetch.class);
 
@@ -72,7 +72,7 @@ class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
      */
     protected final Deque<FetchedMessage> messageQueue;
 
-    private final Acknowledger acknowledger;
+    private final Contracts.Acknowledger acknowledger;
 
     private final NegativeAcknowledger negativeAcknowledger;
 
@@ -117,7 +117,7 @@ class SQSMessageConsumerPrefetch implements Runnable, PrefetchManager {
     protected ExponentialBackoffStrategy backoffStrategy = ExponentialBackoffStrategy.DEFAULT;
 
     SQSMessageConsumerPrefetch(SQSSessionCallbackScheduler callbackScheduler,
-                               Acknowledger acknowledger,
+                               Contracts.Acknowledger acknowledger,
                                NegativeAcknowledger negativeAcknowledger,
                                SQSQueueDestination sqsDestination,
                                AbstractSQSClientWrapper sqsClientWrapper,

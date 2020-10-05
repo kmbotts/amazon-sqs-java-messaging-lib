@@ -8,7 +8,7 @@ import javax.jms.Message;
 @Data
 @Builder
 class FetchedMessage {
-    private final PrefetchManager prefetchManager;
+    private final Contracts.PrefetchManager prefetchManager;
 
     private final Message message;
 }

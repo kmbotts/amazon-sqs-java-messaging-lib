@@ -36,7 +36,7 @@ import java.util.Queue;
  * <p>
  * This class is not safe for concurrent use.
  */
-class RangedAcknowledger extends BulkSQSOperation implements Acknowledger {
+class RangedAcknowledger extends BulkSQSOperation implements Contracts.Acknowledger {
     private static final Log LOG = LogFactory.getLog(RangedAcknowledger.class);
 
     private final AbstractSQSClientWrapper sqsClientWrapper;

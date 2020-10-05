@@ -478,7 +478,7 @@ public class SQSSessionTest {
         MessageListener msgListener = mock(MessageListener.class);
         FetchedMessage msgManager = mock(FetchedMessage.class);
 
-        PrefetchManager prefetchManager = new PrefetchManager() {
+        Contracts.PrefetchManager prefetchManager = new Contracts.PrefetchManager() {
             @Override
             public void messageDispatched() {
                 holdStateLock.countDown();

@@ -57,7 +57,7 @@ class SQSBytesMessage extends SQSMessage implements BytesMessage {
     /**
      * Convert received SQSMessage into BytesMessage.
      */
-    SQSBytesMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
+    SQSBytesMessage(Contracts.Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
         super(acknowledger, queueUrl, sqsMessage);
         try {
             /* Bytes is set by the reset() */

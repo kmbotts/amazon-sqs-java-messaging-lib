@@ -31,7 +31,7 @@ import java.util.Map;
 public class AcknowledgerCommon {
 
     protected String baseQueueUrl = "queueUrl";
-    protected Acknowledger acknowledger;
+    protected Contracts.Acknowledger acknowledger;
     protected AmazonSQSMessagingClientWrapper amazonSQSClient;
     protected List<SQSMessage> populatedMessages = new ArrayList<>();
 

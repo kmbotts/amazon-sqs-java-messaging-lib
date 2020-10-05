@@ -43,7 +43,7 @@ class SQSMapMessage extends SQSMessage implements MapMessage {
     /**
      * Convert received SQSMessage into TextMessage.
      */
-    SQSMapMessage(Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
+    SQSMapMessage(Contracts.Acknowledger acknowledger, String queueUrl, Message sqsMessage) throws JMSException {
         super(acknowledger, queueUrl, sqsMessage);
         map = (ConcurrentHashMap<String, Object>) SQSMessageUtil.deserialize(sqsMessage.getBody());
     }

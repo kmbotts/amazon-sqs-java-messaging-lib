@@ -56,7 +56,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
     private static final String QUEUE_NAME = "QueueName.fifo";
     private static final String QUEUE_URL = NAMESPACE + "/" + QUEUE_NAME;
 
-    private Acknowledger acknowledger;
+    private Contracts.Acknowledger acknowledger;
     private NegativeAcknowledger negativeAcknowledger;
     private SQSSessionCallbackScheduler sqsSessionRunnable;
     private SQSMessageConsumerPrefetch consumerPrefetch;
@@ -85,7 +85,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
 
         sqsSessionRunnable = mock(SQSSessionCallbackScheduler.class);
 
-        acknowledger = mock(Acknowledger.class);
+        acknowledger = mock(Contracts.Acknowledger.class);
 
         negativeAcknowledger = mock(NegativeAcknowledger.class);
 

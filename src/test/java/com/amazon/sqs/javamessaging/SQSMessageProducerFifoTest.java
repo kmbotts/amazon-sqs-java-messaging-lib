@@ -51,14 +51,14 @@ public class SQSMessageProducerFifoTest {
     private SQSMessageProducer producer;
     private SQSQueueDestination destination;
     private AmazonSQSMessagingClientWrapper amazonSQSClient;
-    private Acknowledger acknowledger;
+    private Contracts.Acknowledger acknowledger;
 
     @Before
     public void setup() throws JMSException {
 
         amazonSQSClient = Mockito.mock(AmazonSQSMessagingClientWrapper.class);
 
-        acknowledger = Mockito.mock(Acknowledger.class);
+        acknowledger = Mockito.mock(Contracts.Acknowledger.class);
 
         SQSSession sqsSession = Mockito.mock(SQSSession.class);
         destination = new SQSQueueDestination(QUEUE_NAME, QUEUE_URL);
