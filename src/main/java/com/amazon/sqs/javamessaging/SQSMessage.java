@@ -15,20 +15,20 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import com.amazonaws.util.StringUtils;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.MessageFormatException;
 import javax.jms.MessageNotWriteableException;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -58,29 +58,37 @@ abstract class SQSMessage implements Message {
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
     // Define constant message types.
-    public static final String BYTE_MESSAGE_TYPE = "byte";
-    public static final String OBJECT_MESSAGE_TYPE = "object";
-    public static final String TEXT_MESSAGE_TYPE = "text";
-    public static final String JMS_SQS_MESSAGE_TYPE = "JMS_SQSMessageType";
-    public static final String JMS_SQS_REPLY_TO_QUEUE_NAME = "JMS_SQSReplyToQueueName";
-    public static final String JMS_SQS_REPLY_TO_QUEUE_URL = "JMS_SQSReplyToQueueURL";
-    public static final String JMS_SQS_CORRELATION_ID = "JMS_SQSCorrelationID";
+    static final String BYTE_MESSAGE_TYPE = "byte";
+    static final String OBJECT_MESSAGE_TYPE = "object";
+    static final String TEXT_MESSAGE_TYPE = "text";
+    static final String MAP_MESSAGE_TYPE = "map";
 
-    // Default JMS Message properties
-    private int deliveryMode = Message.DEFAULT_DELIVERY_MODE;
-    private int priority = Message.DEFAULT_PRIORITY;
-    private long timestamp;
-    private boolean redelivered;
-    private String correlationID;
-    private long expiration = Message.DEFAULT_TIME_TO_LIVE;
-    private String messageID;
-    private String type;
-    private SQSQueueDestination replyTo;
-    private Destination destination;
+    static final String JMS_SQS_MESSAGE_TYPE = "JMS_SQSMessageType";
+    static final String JMS_SQS_REPLY_TO_QUEUE_NAME = "JMS_SQSReplyToQueueName";
+    static final String JMS_SQS_REPLY_TO_QUEUE_URL = "JMS_SQSReplyToQueueURL";
+    static final String JMS_SQS_CORRELATION_ID = "JMS_SQSCorrelationID";
 
-    private final Map<String, JMSMessagePropertyValue> properties = new HashMap<String, JMSMessagePropertyValue>();
+    //region JMS Properties
+    private int JMSDeliveryMode = Message.DEFAULT_DELIVERY_MODE;
+    private int JMSPriority = Message.DEFAULT_PRIORITY;
+    private long JMSTimestamp;
+    private boolean JMSRedelivered;
+    private String JMSCorrelationID;
+    private long JMSExpiration = Message.DEFAULT_TIME_TO_LIVE;
+    private String JMSMessageID;
+    private String JMSType;
+    private Destination JMSReplyTo;
+    private Destination JMSDestination;
 
+    private final Map<String, JMSMessagePropertyValue> properties = new HashMap<>();
+    //endregion
+
+    @Getter(value = AccessLevel.PACKAGE)
+    @Setter(value = AccessLevel.PACKAGE)
     private boolean writePermissionsForProperties;
+
+    @Getter(value = AccessLevel.PACKAGE)
+    @Setter(value = AccessLevel.PACKAGE)
     private boolean writePermissionsForBody;
 
     /**
@@ -91,26 +99,32 @@ abstract class SQSMessage implements Message {
     /**
      * Original SQS Message ID.
      */
+    @Getter(value = AccessLevel.PACKAGE)
     private String SQSMessageID;
 
     /**
      * QueueUrl the message came from.
      */
+    @Getter(value = AccessLevel.PACKAGE)
     private String queueUrl;
+
     /**
      * Original SQS Message receipt handle.
      */
+    @Getter(value = AccessLevel.PACKAGE)
     private String receiptHandle;
 
     /**
      * This is called at the receiver side to create a
      * JMS message from the SQS message received.
      */
-    SQSMessage(Acknowledger acknowledger, String queueUrl, com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
+    SQSMessage(Acknowledger acknowledger,
+               String queueUrl,
+               com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
         this.acknowledger = acknowledger;
         this.queueUrl = queueUrl;
-        receiptHandle = sqsMessage.getReceiptHandle();
-        this.setSQSMessageID(sqsMessage.getMessageId());
+        this.receiptHandle = sqsMessage.getReceiptHandle();
+        setSQSMessageID(sqsMessage.getMessageId());
         Map<String, String> systemAttributes = sqsMessage.getAttributes();
         int receiveCount = Integer.parseInt(systemAttributes.get(SQSMessagingClientConstants.APPROXIMATE_RECEIVE_COUNT));
 
@@ -118,11 +132,12 @@ abstract class SQSMessage implements Message {
           JMSXDeliveryCount is set based on SQS ApproximateReceiveCount
           attribute.
          */
-        properties.put(SQSMessagingClientConstants.JMSX_DELIVERY_COUNT, new JMSMessagePropertyValue(
-                receiveCount, SQSMessagingClientConstants.INT));
+        properties.put(SQSMessagingClientConstants.JMSX_DELIVERY_COUNT, PropertyType.INT.createJMSMessagePropertyValue(receiveCount));
+
         if (receiveCount > 1) {
             setJMSRedelivered(true);
         }
+
         if (sqsMessage.getMessageAttributes() != null) {
             addMessageAttributes(sqsMessage);
         }
@@ -132,15 +147,8 @@ abstract class SQSMessage implements Message {
         mapSystemAttributeToJmsMessageProperty(systemAttributes, SQSMessagingClientConstants.MESSAGE_DEDUPLICATION_ID, SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID);
         mapSystemAttributeToJmsMessageProperty(systemAttributes, SQSMessagingClientConstants.MESSAGE_GROUP_ID, SQSMessagingClientConstants.JMSX_GROUP_ID);
 
-        writePermissionsForBody = false;
-        writePermissionsForProperties = false;
-    }
-
-    private void mapSystemAttributeToJmsMessageProperty(Map<String, String> systemAttributes, String systemAttributeName, String jmsMessagePropertyName) throws JMSException {
-        String systemAttributeValue = systemAttributes.get(systemAttributeName);
-        if (systemAttributeValue != null) {
-            properties.put(jmsMessagePropertyName, new JMSMessagePropertyValue(systemAttributeValue, SQSMessagingClientConstants.STRING));
-        }
+        setWritePermissionsForBody(false);
+        setWritePermissionsForProperties(false);
     }
 
     /**
@@ -149,108 +157,11 @@ abstract class SQSMessage implements Message {
      * should be used to add payload.
      */
     SQSMessage() {
-        writePermissionsForBody = true;
-        writePermissionsForProperties = true;
+        setWritePermissionsForBody(true);
+        setWritePermissionsForProperties(true);
     }
 
-    private void addMessageAttributes(com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
-        for (Entry<String, MessageAttributeValue> entry : sqsMessage.getMessageAttributes().entrySet()) {
-            properties.put(entry.getKey(), new JMSMessagePropertyValue(
-                    entry.getValue().getStringValue(), entry.getValue().getDataType()));
-        }
-    }
-
-    protected void checkPropertyWritePermissions() throws JMSException {
-        if (!writePermissionsForProperties) {
-            throw new MessageNotWriteableException("Message properties are not writable");
-        }
-    }
-
-    protected void checkBodyWritePermissions() throws JMSException {
-        if (!writePermissionsForBody) {
-            throw new MessageNotWriteableException("Message body is not writable");
-        }
-    }
-
-    protected static JMSException convertExceptionToJMSException(Exception e) {
-        JMSException ex = new JMSException(e.getMessage());
-        ex.initCause(e);
-        return ex;
-    }
-
-    protected static MessageFormatException convertExceptionToMessageFormatException(Exception e) {
-        MessageFormatException ex = new MessageFormatException(e.getMessage());
-        ex.initCause(e);
-        return ex;
-    }
-
-    protected void setBodyWritePermissions(boolean enable) {
-        writePermissionsForBody = enable;
-    }
-
-    /**
-     * Get SQS Message Group Id (applicable for FIFO queues, available also as JMS property 'JMSXGroupId')
-     *
-     * @throws JMSException exception
-     */
-    public String getSQSMessageGroupId() throws JMSException {
-        return getStringProperty(SQSMessagingClientConstants.JMSX_GROUP_ID);
-    }
-
-    /**
-     * Get SQS Message Deduplication Id (applicable for FIFO queues, available also as JMS property 'JMS_SQS_DeduplicationId')
-     *
-     * @throws JMSException exception
-     */
-    public String getSQSMessageDeduplicationId() throws JMSException {
-        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID);
-    }
-
-    /**
-     * Get SQS Message Sequence Number (applicable for FIFO queues, available also as JMS property 'JMS_SQS_SequenceNumber')
-     *
-     * @throws JMSException exception
-     */
-    public String getSQSMessageSequenceNumber() throws JMSException {
-        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
-    }
-
-    /**
-     * Get SQS Message Id.
-     *
-     * @return SQS Message Id.
-     */
-    public String getSQSMessageID() {
-        return SQSMessageID;
-    }
-
-    /**
-     * Set SQS Message Id, used on send.
-     *
-     * @param SQSMessageID messageId assigned by SQS during send.
-     */
-    public void setSQSMessageID(String SQSMessageID) throws JMSException {
-        this.SQSMessageID = SQSMessageID;
-        this.setJMSMessageID(String.format(SQSMessagingClientConstants.MESSAGE_ID_FORMAT, SQSMessageID));
-    }
-
-    /**
-     * Get SQS Message receiptHandle.
-     *
-     * @return SQS Message receiptHandle.
-     */
-    public String getReceiptHandle() {
-        return receiptHandle;
-    }
-
-    /**
-     * Get queueUrl the message came from.
-     *
-     * @return queueUrl.
-     */
-    public String getQueueUrl() {
-        return queueUrl;
-    }
+    //region JMS Member Variable Getter/Setter
 
     /**
      * Gets the message ID.
@@ -263,7 +174,7 @@ abstract class SQSMessage implements Message {
      */
     @Override
     public String getJMSMessageID() throws JMSException {
-        return messageID;
+        return JMSMessageID;
     }
 
     /**
@@ -276,46 +187,42 @@ abstract class SQSMessage implements Message {
      */
     @Override
     public void setJMSMessageID(String id) throws JMSException {
-        messageID = id;
+        this.JMSMessageID = id;
     }
 
     @Override
     public long getJMSTimestamp() throws JMSException {
-        return timestamp;
+        return JMSTimestamp;
     }
 
     @Override
     public void setJMSTimestamp(long timestamp) throws JMSException {
-        this.timestamp = timestamp;
+        this.JMSTimestamp = timestamp;
     }
 
     @Override
     public byte[] getJMSCorrelationIDAsBytes() throws JMSException {
-        return correlationID != null ? correlationID.getBytes(DEFAULT_CHARSET) : null;
+        return JMSCorrelationID != null ? JMSCorrelationID.getBytes(DEFAULT_CHARSET) : null;
     }
 
     @Override
     public void setJMSCorrelationIDAsBytes(byte[] correlationID) throws JMSException {
-        try {
-            this.correlationID = correlationID != null ? new String(correlationID, "UTF-8") : null;
-        } catch (UnsupportedEncodingException e) {
-            throw new JMSException(e.getMessage());
-        }
+        this.JMSCorrelationID = correlationID != null ? new String(correlationID, DEFAULT_CHARSET) : null;
     }
 
     @Override
     public void setJMSCorrelationID(String correlationID) throws JMSException {
-        this.correlationID = correlationID;
+        this.JMSCorrelationID = correlationID;
     }
 
     @Override
     public String getJMSCorrelationID() throws JMSException {
-        return correlationID;
+        return JMSCorrelationID;
     }
 
     @Override
     public Destination getJMSReplyTo() throws JMSException {
-        return replyTo;
+        return JMSReplyTo;
     }
 
     @Override
@@ -323,7 +230,7 @@ abstract class SQSMessage implements Message {
         if (replyTo != null && !(replyTo instanceof SQSQueueDestination)) {
             throw new IllegalArgumentException("The replyTo Destination must be a SQSQueueDestination");
         }
-        this.replyTo = (SQSQueueDestination) replyTo;
+        this.JMSReplyTo = (SQSQueueDestination) replyTo;
     }
 
     /**
@@ -343,7 +250,7 @@ abstract class SQSMessage implements Message {
      */
     @Override
     public Destination getJMSDestination() throws JMSException {
-        return destination;
+        return JMSDestination;
     }
 
     /**
@@ -356,261 +263,135 @@ abstract class SQSMessage implements Message {
      */
     @Override
     public void setJMSDestination(Destination destination) throws JMSException {
-        this.destination = destination;
+        this.JMSDestination = destination;
     }
 
     @Override
     public int getJMSDeliveryMode() throws JMSException {
-        return deliveryMode;
+        return JMSDeliveryMode;
     }
 
     @Override
     public void setJMSDeliveryMode(int deliveryMode) throws JMSException {
-        this.deliveryMode = deliveryMode;
+        this.JMSDeliveryMode = deliveryMode;
     }
 
     @Override
     public boolean getJMSRedelivered() throws JMSException {
-        return redelivered;
+        return JMSRedelivered;
     }
 
     @Override
     public void setJMSRedelivered(boolean redelivered) throws JMSException {
-        this.redelivered = redelivered;
+        this.JMSRedelivered = redelivered;
     }
 
     @Override
     public String getJMSType() throws JMSException {
-        return type;
+        return JMSType;
     }
 
     @Override
     public void setJMSType(String type) throws JMSException {
-        this.type = type;
+        this.JMSType = type;
     }
 
     @Override
     public long getJMSExpiration() throws JMSException {
-        return expiration;
+        return JMSExpiration;
     }
 
     @Override
     public void setJMSExpiration(long expiration) throws JMSException {
-        this.expiration = expiration;
+        this.JMSExpiration = expiration;
     }
 
     @Override
     public int getJMSPriority() throws JMSException {
-        return priority;
+        return JMSPriority;
     }
 
     @Override
     public void setJMSPriority(int priority) throws JMSException {
-        this.priority = priority;
+        this.JMSPriority = priority;
     }
 
-    /**
-     * Clears a message's properties and set the write permissions for
-     * properties. The message's header fields and body are not cleared.
-     */
     @Override
-    public void clearProperties() throws JMSException {
-        properties.clear();
-        writePermissionsForProperties = true;
+    public long getJMSDeliveryTime() throws JMSException {
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
 
-    /**
-     * Indicates whether a property value exists for the given property name.
-     *
-     * @param name The name of the property.
-     * @return true if the property exists.
-     */
     @Override
-    public boolean propertyExists(String name) throws JMSException {
-        return properties.containsKey(name);
+    public void setJMSDeliveryTime(long deliveryTime) throws JMSException {
+        throw JMSExceptionUtil.UnsupportedMethod().get();
     }
+    //endregion
 
-    /**
-     * Get the value for a property that represents a java primitive(e.g. int or
-     * long).
-     *
-     * @param property The name of the property to get.
-     * @param type     The type of the property.
-     * @return the converted value for the property.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   and NumberFormatException when property name or value is
-     *                                null. Method throws same exception as primitives
-     *                                corresponding valueOf(String) method.
-     */
-    <T> T getPrimitiveProperty(String property, Class<T> type) throws JMSException {
-        if (property == null) {
-            throw new NullPointerException("Property name is null");
-        }
-        Object value = getObjectProperty(property);
-        if (value == null) {
-            return handleNullPropertyValue(property, type);
-        }
-        T convertedValue = TypeConversionSupport.convert(value, type);
-        if (convertedValue == null) {
-            throw new MessageFormatException("Property " + property + " was " + value.getClass().getName() +
-                    " and cannot be read as " + type.getName());
-        }
-        return convertedValue;
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> T handleNullPropertyValue(String name, Class<T> clazz) {
-        if (clazz == String.class) {
-            return null;
-        } else if (clazz == Boolean.class) {
-            return (T) Boolean.FALSE;
-        } else if (clazz == Double.class || clazz == Float.class) {
-            throw new NullPointerException("Value of property with name " + name + " is null.");
-        } else {
-            throw new NumberFormatException("Value of property with name " + name + " is null.");
-        }
-    }
-
-    /**
-     * Returns the value of the <code>boolean</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>boolean</code> property value for the specified name.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name is null.
-     */
+    //region Get Property Methods
     @Override
     public boolean getBooleanProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, Boolean.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.BOOLEAN.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toBoolean(prop.getValue());
     }
 
-    /**
-     * Returns the value of the <code>byte</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>byte</code> property value for the specified name.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name is null.
-     * @throws NumberFormatException  When property value is null.
-     */
     @Override
     public byte getByteProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, Byte.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.BYTE.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toByte(prop.getValue());
     }
 
-    /**
-     * Returns the value of the <code>short</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>short</code> property value for the specified name.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name is null.
-     * @throws NumberFormatException  When property value is null.
-     */
     @Override
     public short getShortProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, Short.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.SHORT.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toShort(prop.getValue());
     }
 
-    /**
-     * Returns the value of the <code>int</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>int</code> property value for the specified name.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name is null.
-     * @throws NumberFormatException  When property value is null.
-     */
     @Override
     public int getIntProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, Integer.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.INT.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toInt(prop.getValue());
     }
 
-    /**
-     * Returns the value of the <code>long</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>long</code> property value for the specified name.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name is null.
-     * @throws NumberFormatException  When property value is null.
-     */
     @Override
     public long getLongProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, Long.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.LONG.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toLong(prop.getValue());
     }
 
-    /**
-     * Returns the value of the <code>float</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>float</code> property value for the specified name.
-     * @throws JMSException           Wn internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name or value is null.
-     */
     @Override
     public float getFloatProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, Float.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.FLOAT.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toFloat(prop.getValue());
     }
 
-    /**
-     * Returns the value of the <code>double</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>double</code> property value for the specified name.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name or value is null.
-     */
     @Override
     public double getDoubleProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, Double.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.DOUBLE.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toDouble(prop.getValue());
     }
 
-    /**
-     * Returns the value of the <code>String</code> property with the specified
-     * name.
-     *
-     * @param name The name of the property to get.
-     * @return the <code>String</code> property value for the specified name.
-     * @throws JMSException           On internal error.
-     * @throws MessageFormatException If the property cannot be converted to the specified type.
-     * @throws NullPointerException   When property name is null.
-     */
     @Override
     public String getStringProperty(String name) throws JMSException {
-        return getPrimitiveProperty(name, String.class);
+        JMSMessagePropertyValue prop = propertyExists(name)
+                ? properties.get(name)
+                : PropertyType.STRING.createJMSMessagePropertyValue(null);
+        return prop.getPropertyType().toString(prop.getValue());
     }
 
-    /**
-     * Returns the value of the Java object property with the specified name.
-     * <p>
-     * This method can be used to return, in boxed format, an object that has
-     * been stored as a property in the message with the equivalent
-     * <code>setObjectProperty</code> method call, or its equivalent primitive
-     * setter method.
-     *
-     * @param name The name of the property to get.
-     * @return the Java object property value with the specified name, in boxed
-     * format (for example, if the property was set as an
-     * <code>int</code>, an <code>Integer</code> is returned); if there
-     * is no property by this name, a null value is returned.
-     * @throws JMSException On internal error.
-     */
     @Override
     public Object getObjectProperty(String name) throws JMSException {
         JMSMessagePropertyValue propertyValue = getJMSMessagePropertyValue(name);
@@ -619,202 +400,82 @@ abstract class SQSMessage implements Message {
         }
         return null;
     }
+    //endregion
 
-    /**
-     * Returns the property value with message attribute to object property
-     * conversions took place.
-     * <p>
-     *
-     * @param name The name of the property to get.
-     * @return <code>JMSMessagePropertyValue</code> with object value and
-     * corresponding SQS message attribute type and message attribute
-     * string value.
-     * @throws JMSException On internal error.
-     */
-    public JMSMessagePropertyValue getJMSMessagePropertyValue(String name) throws JMSException {
-        return properties.get(name);
+    //region Set Property Methods
+    @Override
+    public void setBooleanProperty(String name, boolean value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.BOOLEAN);
     }
 
-    private static class PropertyEnum implements Enumeration<String> {
-        private final Iterator<String> propertyItr;
-
-        public PropertyEnum(Iterator<String> propertyItr) {
-            this.propertyItr = propertyItr;
-        }
-
-        @Override
-        public boolean hasMoreElements() {
-            return propertyItr.hasNext();
-        }
-
-        @Override
-        public String nextElement() {
-            return propertyItr.next();
-        }
+    @Override
+    public void setByteProperty(String name, byte value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.BYTE);
     }
 
-    /**
-     * Returns an <code>Enumeration</code> of all the property names.
-     * <p>
-     * Note that JMS standard header fields are not considered properties and
-     * are not returned in this enumeration.
-     *
-     * @return an enumeration of all the names of property values.
-     * @throws JMSException On internal error.
-     */
+    @Override
+    public void setShortProperty(String name, short value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.SHORT);
+    }
+
+    @Override
+    public void setIntProperty(String name, int value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.INT);
+    }
+
+    @Override
+    public void setLongProperty(String name, long value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.LONG);
+    }
+
+    @Override
+    public void setFloatProperty(String name, float value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.FLOAT);
+    }
+
+    @Override
+    public void setDoubleProperty(String name, double value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.DOUBLE);
+    }
+
+    @Override
+    public void setStringProperty(String name, String value) throws JMSException {
+        setObjectPropertyInternal(name, value, PropertyType.STRING);
+    }
+
+    @Override
+    public void setObjectProperty(String name, Object value) throws JMSException {
+        PropertyType propertyType = PropertyType.findValidPropertyValueType(name, value);
+        setObjectPropertyInternal(name, value, propertyType);
+    }
+
+    private void setObjectPropertyInternal(String name, Object value, PropertyType propertyType) throws JMSException {
+        handleNullPropertyName(name);
+        checkPropertyWritePermissions();
+        properties.put(name, propertyType.createJMSMessagePropertyValue(value));
+    }
+    //endregion
+
+    //region Other Property Methods
+    @Override
+    public void clearProperties() throws JMSException {
+        properties.clear();
+        setWritePermissionsForProperties(true);
+    }
+
+    @Override
+    public boolean propertyExists(String name) throws JMSException {
+        handleNullPropertyName(name);
+        return properties.containsKey(name);
+    }
+
     @Override
     public Enumeration<String> getPropertyNames() throws JMSException {
         return new PropertyEnum(properties.keySet().iterator());
     }
+    //endregion
 
-    /**
-     * Sets a <code>boolean</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>boolean</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setBooleanProperty(String name, boolean value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a <code>byte</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>byte</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setByteProperty(String name, byte value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a <code>short</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>short</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setShortProperty(String name, short value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a <code>int</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>int</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setIntProperty(String name, int value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a <code>long</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>long</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setLongProperty(String name, long value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a <code>float</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>float</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setFloatProperty(String name, float value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a <code>double</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>double</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setDoubleProperty(String name, double value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a <code>String</code> property value with the specified name into
-     * the message.
-     *
-     * @param name  The name of the property to set.
-     * @param value The <code>String</code> value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setStringProperty(String name, String value) throws JMSException {
-        setObjectProperty(name, value);
-    }
-
-    /**
-     * Sets a Java object property value with the specified name into the
-     * message.
-     * <p>
-     * Note that this method works only for the boxed primitive object types
-     * (Integer, Double, Long ...) and String objects.
-     *
-     * @param name  The name of the property to set.
-     * @param value The object value of the property to set.
-     * @throws JMSException                 On internal error.
-     * @throws IllegalArgumentException     If the name or value is null or empty string.
-     * @throws MessageFormatException       If the object is invalid type.
-     * @throws MessageNotWriteableException If properties are read-only.
-     */
-    @Override
-    public void setObjectProperty(String name, Object value) throws JMSException {
-        if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("Property name can not be null or empty.");
-        }
-        if (value == null || "".equals(value)) {
-            throw new IllegalArgumentException("Property value can not be null or empty.");
-        }
-        if (!isValidPropertyValueType(value)) {
-            throw new MessageFormatException("Value of property with name " + name + " has incorrect type " + value.getClass().getName() + ".");
-        }
-        checkPropertyWritePermissions();
-        properties.put(name, new JMSMessagePropertyValue(value));
-    }
+    //region JMS Other
 
     /**
      * <p>
@@ -842,331 +503,6 @@ abstract class SQSMessage implements Message {
         }
     }
 
-    /**
-     * <p>
-     * Clears out the message body. Clearing a message's body does not clear its
-     * header values or property entries.
-     * <p>
-     * This method cannot be called directly instead the implementation on the
-     * subclasses should be used.
-     *
-     * @throws JMSException If directly called
-     */
-    @Override
-    public void clearBody() throws JMSException {
-        throw new JMSException("SQSMessage does not have any body");
-    }
-
-    private boolean isValidPropertyValueType(Object value) {
-        return value instanceof Boolean || value instanceof Byte || value instanceof Short ||
-                value instanceof Integer || value instanceof Long || value instanceof Float ||
-                value instanceof Double || value instanceof String;
-    }
-
-    /**
-     * Copied from org.apache.activemq.util.TypeConversionSupport to provide the
-     * same property support provided by activemq without creating a dependency
-     * on activemq.
-     */
-    public static class TypeConversionSupport {
-
-        static class ConversionKey {
-            final Class<?> from;
-
-            final Class<?> to;
-
-            public ConversionKey(Class<?> from, Class<?> to) {
-                this.from = from;
-                this.to = to;
-            }
-
-            @Override
-            public int hashCode() {
-                final int prime = 31;
-                int result = 1;
-                result = prime * result + ((from == null) ? 0 : from.hashCode());
-                result = prime * result + ((to == null) ? 0 : to.hashCode());
-                return result;
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj)
-                    return true;
-                if (obj == null)
-                    return false;
-                if (getClass() != obj.getClass())
-                    return false;
-                ConversionKey other = (ConversionKey) obj;
-                if (from == null) {
-                    if (other.from != null)
-                        return false;
-                } else if (!from.equals(other.from))
-                    return false;
-                if (to == null) {
-                    if (other.to != null)
-                        return false;
-                } else if (!to.equals(other.to))
-                    return false;
-                return true;
-            }
-        }
-
-        interface Converter {
-            Object convert(Object value);
-        }
-
-        static final private Map<ConversionKey, Converter> CONVERSION_MAP = new HashMap<ConversionKey, Converter>();
-
-        static {
-            Converter toStringConverter = new Converter() {
-                public Object convert(Object value) {
-                    return value.toString();
-                }
-            };
-            CONVERSION_MAP.put(new ConversionKey(Boolean.class, String.class), toStringConverter);
-            CONVERSION_MAP.put(new ConversionKey(Byte.class, String.class), toStringConverter);
-            CONVERSION_MAP.put(new ConversionKey(Short.class, String.class), toStringConverter);
-            CONVERSION_MAP.put(new ConversionKey(Integer.class, String.class), toStringConverter);
-            CONVERSION_MAP.put(new ConversionKey(Long.class, String.class), toStringConverter);
-            CONVERSION_MAP.put(new ConversionKey(Float.class, String.class), toStringConverter);
-            CONVERSION_MAP.put(new ConversionKey(Double.class, String.class), toStringConverter);
-
-            CONVERSION_MAP.put(new ConversionKey(String.class, Boolean.class), new Converter() {
-                public Object convert(Object value) {
-                    String stringValue = (String) value;
-                    if (Boolean.valueOf(stringValue) || SQSMessagingClientConstants.INT_TRUE.equals((String) value)) {
-                        return Boolean.TRUE;
-                    }
-                    return Boolean.FALSE;
-                }
-            });
-            CONVERSION_MAP.put(new ConversionKey(String.class, Byte.class), new Converter() {
-                public Object convert(Object value) {
-                    return Byte.valueOf((String) value);
-                }
-            });
-            CONVERSION_MAP.put(new ConversionKey(String.class, Short.class), new Converter() {
-                public Object convert(Object value) {
-                    return Short.valueOf((String) value);
-                }
-            });
-            CONVERSION_MAP.put(new ConversionKey(String.class, Integer.class), new Converter() {
-                public Object convert(Object value) {
-                    return Integer.valueOf((String) value);
-                }
-            });
-            CONVERSION_MAP.put(new ConversionKey(String.class, Long.class), new Converter() {
-                public Object convert(Object value) {
-                    return Long.valueOf((String) value);
-                }
-            });
-            CONVERSION_MAP.put(new ConversionKey(String.class, Float.class), new Converter() {
-                public Object convert(Object value) {
-                    return Float.valueOf((String) value);
-                }
-            });
-            CONVERSION_MAP.put(new ConversionKey(String.class, Double.class), new Converter() {
-                public Object convert(Object value) {
-                    return Double.valueOf((String) value);
-                }
-            });
-
-            Converter longConverter = new Converter() {
-                public Object convert(Object value) {
-                    return Long.valueOf(((Number) value).longValue());
-                }
-            };
-            CONVERSION_MAP.put(new ConversionKey(Byte.class, Long.class), longConverter);
-            CONVERSION_MAP.put(new ConversionKey(Short.class, Long.class), longConverter);
-            CONVERSION_MAP.put(new ConversionKey(Integer.class, Long.class), longConverter);
-            CONVERSION_MAP.put(new ConversionKey(Date.class, Long.class), new Converter() {
-                public Object convert(Object value) {
-                    return Long.valueOf(((Date) value).getTime());
-                }
-            });
-
-            Converter intConverter = new Converter() {
-                public Object convert(Object value) {
-                    return Integer.valueOf(((Number) value).intValue());
-                }
-            };
-            CONVERSION_MAP.put(new ConversionKey(Byte.class, Integer.class), intConverter);
-            CONVERSION_MAP.put(new ConversionKey(Short.class, Integer.class), intConverter);
-
-            CONVERSION_MAP.put(new ConversionKey(Byte.class, Short.class), new Converter() {
-                public Object convert(Object value) {
-                    return Short.valueOf(((Number) value).shortValue());
-                }
-            });
-
-            CONVERSION_MAP.put(new ConversionKey(Float.class, Double.class), new Converter() {
-                public Object convert(Object value) {
-                    return Double.valueOf(((Number) value).doubleValue());
-                }
-            });
-        }
-
-        @SuppressWarnings("unchecked")
-        static public <T> T convert(Object value, Class<T> clazz) {
-
-            assert value != null && clazz != null;
-
-            if (value.getClass() == clazz)
-                return (T) value;
-
-            Converter c = (Converter) CONVERSION_MAP.get(new ConversionKey(value.getClass(), clazz));
-            if (c == null)
-                return null;
-            return (T) c.convert(value);
-
-        }
-    }
-
-    /**
-     * This class is used fulfill object value, corresponding SQS message
-     * attribute type and message attribute string value.
-     */
-    public static class JMSMessagePropertyValue {
-
-        private final Object value;
-
-        private final String type;
-
-        private final String stringMessageAttributeValue;
-
-        public JMSMessagePropertyValue(String stringValue, String type) throws JMSException {
-            this.type = type;
-            this.value = getObjectValue(stringValue, type);
-            this.stringMessageAttributeValue = stringValue;
-        }
-
-        public JMSMessagePropertyValue(Object value) throws JMSException {
-            this.type = getType(value);
-            this.value = value;
-            if (SQSMessagingClientConstants.BOOLEAN.equals(type)) {
-                if ((Boolean) value) {
-                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_TRUE;
-                } else {
-                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_FALSE;
-                }
-            } else {
-                stringMessageAttributeValue = value.toString();
-            }
-        }
-
-        public JMSMessagePropertyValue(Object value, String type) throws JMSException {
-            this.value = value;
-            this.type = type;
-            if (SQSMessagingClientConstants.BOOLEAN.equals(type)) {
-                if ((Boolean) value) {
-                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_TRUE;
-                } else {
-                    stringMessageAttributeValue = SQSMessagingClientConstants.INT_FALSE;
-                }
-            } else {
-                stringMessageAttributeValue = value.toString();
-            }
-        }
-
-        private static String getType(Object value) throws JMSException {
-            if (value instanceof String) {
-                return SQSMessagingClientConstants.STRING;
-            } else if (value instanceof Integer) {
-                return SQSMessagingClientConstants.INT;
-            } else if (value instanceof Long) {
-                return SQSMessagingClientConstants.LONG;
-            } else if (value instanceof Boolean) {
-                return SQSMessagingClientConstants.BOOLEAN;
-            } else if (value instanceof Byte) {
-                return SQSMessagingClientConstants.BYTE;
-            } else if (value instanceof Double) {
-                return SQSMessagingClientConstants.DOUBLE;
-            } else if (value instanceof Float) {
-                return SQSMessagingClientConstants.FLOAT;
-            } else if (value instanceof Short) {
-                return SQSMessagingClientConstants.SHORT;
-            } else {
-                throw new JMSException("Not a supported JMS property type");
-            }
-        }
-
-        private static Object getObjectValue(String value, String type) throws JMSException {
-            if (SQSMessagingClientConstants.INT.equals(type)) {
-                return Integer.valueOf(value);
-            } else if (SQSMessagingClientConstants.LONG.equals(type)) {
-                return Long.valueOf(value);
-            } else if (SQSMessagingClientConstants.BOOLEAN.equals(type)) {
-                if (SQSMessagingClientConstants.INT_TRUE.equals(value)) {
-                    return Boolean.TRUE;
-                }
-                return Boolean.FALSE;
-            } else if (SQSMessagingClientConstants.BYTE.equals(type)) {
-                return Byte.valueOf(value);
-            } else if (SQSMessagingClientConstants.DOUBLE.equals(type)) {
-                return Double.valueOf(value);
-            } else if (SQSMessagingClientConstants.FLOAT.equals(type)) {
-                return Float.valueOf(value);
-            } else if (SQSMessagingClientConstants.SHORT.equals(type)) {
-                return Short.valueOf(value);
-            } else if (type != null && (type.startsWith(SQSMessagingClientConstants.STRING) || type.startsWith(SQSMessagingClientConstants.NUMBER))) {
-                return value;
-            } else {
-                throw new JMSException(type + " is not a supported JMS property type");
-            }
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public Object getValue() {
-            return value;
-        }
-
-        public String getStringMessageAttributeValue() {
-            return stringMessageAttributeValue;
-        }
-    }
-
-
-    /**
-     * This method sets the JMS_SQS_SEQUENCE_NUMBER property on the message. It is exposed explicitly here, so that
-     * it can be invoked even on read-only message object obtained through receing a message.
-     * This support the use case of send a received message by using the same JMSMessage object.
-     *
-     * @param sequenceNumber Sequence number to set. If null or empty, the stored sequence number will be removed.
-     * @throws JMSException exception
-     */
-    public void setSequenceNumber(String sequenceNumber) throws JMSException {
-        if (sequenceNumber == null || sequenceNumber.isEmpty()) {
-            properties.remove(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
-        } else {
-            properties.put(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER, new JMSMessagePropertyValue(sequenceNumber));
-        }
-    }
-
-    /*
-     * Unit Test Utility Functions
-     */
-    void setWritePermissionsForProperties(boolean writePermissionsForProperties) {
-        this.writePermissionsForProperties = writePermissionsForProperties;
-    }
-
-    protected boolean isEmpty() {
-        return false;
-    }
-
-    @Override
-    public long getJMSDeliveryTime() throws JMSException {
-        throw JMSExceptionUtil.UnsupportedMethod().get();
-    }
-
-    @Override
-    public void setJMSDeliveryTime(long deliveryTime) throws JMSException {
-        throw JMSExceptionUtil.UnsupportedMethod().get();
-    }
-
     @Override
     public <T> T getBody(Class<T> c) throws JMSException {
         return null;
@@ -1176,4 +512,111 @@ abstract class SQSMessage implements Message {
     public boolean isBodyAssignableTo(Class c) throws JMSException {
         return true;
     }
+    //endregion
+
+    //region Internal SQS Methods
+    void mapSystemAttributeToJmsMessageProperty(Map<String, String> systemAttributes, String systemAttributeName, String jmsMessagePropertyName) throws JMSException {
+        String systemAttributeValue = systemAttributes.get(systemAttributeName);
+        if (systemAttributeValue != null) {
+            properties.put(jmsMessagePropertyName, PropertyType.STRING.createJMSMessagePropertyValue(systemAttributeValue));
+        }
+    }
+
+    void addMessageAttributes(com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
+        for (Entry<String, MessageAttributeValue> entry : sqsMessage.getMessageAttributes().entrySet()) {
+            properties.put(entry.getKey(), new JMSMessagePropertyValue(
+                    entry.getValue().getStringValue(), entry.getValue().getDataType()));
+        }
+    }
+
+    void checkPropertyWritePermissions() throws JMSException {
+        if (!isWritePermissionsForProperties()) {
+            throw new MessageNotWriteableException("Message properties are not writable");
+        }
+    }
+
+    void checkBodyWritePermissions() throws JMSException {
+        if (!isWritePermissionsForBody()) {
+            throw new MessageNotWriteableException("Message body is not writable");
+        }
+    }
+
+    /**
+     * Get SQS Message Group Id (applicable for FIFO queues, available also as JMS property 'JMSXGroupId')
+     *
+     * @throws JMSException exception
+     */
+    String getSQSMessageGroupId() throws JMSException {
+        return getStringProperty(SQSMessagingClientConstants.JMSX_GROUP_ID);
+    }
+
+    /**
+     * Get SQS Message Deduplication Id (applicable for FIFO queues, available also as JMS property 'JMS_SQS_DeduplicationId')
+     *
+     * @throws JMSException exception
+     */
+    String getSQSMessageDeduplicationId() throws JMSException {
+        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID);
+    }
+
+    /**
+     * Get SQS Message Sequence Number (applicable for FIFO queues, available also as JMS property 'JMS_SQS_SequenceNumber')
+     *
+     * @throws JMSException exception
+     */
+    String getSQSMessageSequenceNumber() throws JMSException {
+        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
+    }
+
+    /**
+     * Set SQS Message Id, used on send.
+     *
+     * @param SQSMessageID messageId assigned by SQS during send.
+     */
+    void setSQSMessageID(String SQSMessageID) throws JMSException {
+        this.SQSMessageID = SQSMessageID;
+        this.setJMSMessageID(String.format(SQSMessagingClientConstants.MESSAGE_ID_FORMAT, SQSMessageID));
+    }
+
+    private void handleNullPropertyName(String name) {
+        if (StringUtils.isNullOrEmpty(name))
+            throw new IllegalArgumentException("Property name can not be null or empty.");
+    }
+
+    /**
+     * Returns the property value with message attribute to object property
+     * conversions took place.
+     * <p>
+     *
+     * @param name The name of the property to get.
+     * @return <code>JMSMessagePropertyValue</code> with object value and
+     * corresponding SQS message attribute type and message attribute
+     * string value.
+     * @throws JMSException On internal error.
+     */
+    JMSMessagePropertyValue getJMSMessagePropertyValue(String name) throws JMSException {
+        return properties.get(name);
+    }
+
+    /**
+     * This method sets the JMS_SQS_SEQUENCE_NUMBER property on the message. It is exposed explicitly here, so that
+     * it can be invoked even on read-only message object obtained through receing a message.
+     * This support the use case of send a received message by using the same JMSMessage object.
+     *
+     * @param sequenceNumber Sequence number to set. If null or empty, the stored sequence number will be removed.
+     * @throws JMSException exception
+     */
+    void setSequenceNumber(String sequenceNumber) throws JMSException {
+        if (sequenceNumber == null || sequenceNumber.isEmpty()) {
+            properties.remove(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
+        } else {
+            properties.put(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER, PropertyType.STRING.createJMSMessagePropertyValue(sequenceNumber));
+        }
+    }
+
+    boolean isEmpty() {
+        return false;
+    }
+    //endregion
+
 }
