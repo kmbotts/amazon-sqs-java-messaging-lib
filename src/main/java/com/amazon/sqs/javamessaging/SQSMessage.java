@@ -23,6 +23,7 @@ import lombok.Setter;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageNotReadableException;
 import javax.jms.MessageNotWriteableException;
 
 import java.nio.charset.Charset;
@@ -53,7 +54,7 @@ import java.util.Map.Entry;
  * JMSXDeliveryCount reserved property is supported and set based on the
  * approximate receive count observed on the SQS side.
  */
-abstract class SQSMessage implements Message {
+abstract class SQSMessage implements Message, Cloneable {
 
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
@@ -85,11 +86,11 @@ abstract class SQSMessage implements Message {
 
     @Getter(value = AccessLevel.PACKAGE)
     @Setter(value = AccessLevel.PACKAGE)
-    private boolean writePermissionsForProperties;
+    private boolean writePermissionsForProperties = true;
 
     @Getter(value = AccessLevel.PACKAGE)
     @Setter(value = AccessLevel.PACKAGE)
-    private boolean writePermissionsForBody;
+    private boolean writePermissionsForBody = true;
 
     /**
      * Function for acknowledging message.
@@ -132,7 +133,7 @@ abstract class SQSMessage implements Message {
           JMSXDeliveryCount is set based on SQS ApproximateReceiveCount
           attribute.
          */
-        properties.put(SQSMessagingClientConstants.JMSX_DELIVERY_COUNT, PropertyType.INT.createJMSMessagePropertyValue(receiveCount));
+        setIntProperty(SQSMessagingClientConstants.JMSX_DELIVERY_COUNT, receiveCount);
 
         if (receiveCount > 1) {
             setJMSRedelivered(true);
@@ -330,75 +331,74 @@ abstract class SQSMessage implements Message {
     //region Get Property Methods
     @Override
     public boolean getBooleanProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.BOOLEAN.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toBoolean(prop.getValue());
+        return propertyValue.getPropertyType().toBoolean(propertyValue.getValue());
     }
 
     @Override
     public byte getByteProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.BYTE.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toByte(prop.getValue());
+        return propertyValue.getPropertyType().toByte(propertyValue.getValue());
     }
 
     @Override
     public short getShortProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.SHORT.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toShort(prop.getValue());
+        return propertyValue.getPropertyType().toShort(propertyValue.getValue());
     }
 
     @Override
     public int getIntProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.INT.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toInt(prop.getValue());
+        return propertyValue.getPropertyType().toInt(propertyValue.getValue());
     }
 
     @Override
     public long getLongProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.LONG.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toLong(prop.getValue());
+        return propertyValue.getPropertyType().toLong(propertyValue.getValue());
     }
 
     @Override
     public float getFloatProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.FLOAT.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toFloat(prop.getValue());
+        return propertyValue.getPropertyType().toFloat(propertyValue.getValue());
     }
 
     @Override
     public double getDoubleProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.DOUBLE.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toDouble(prop.getValue());
+        return propertyValue.getPropertyType().toDouble(propertyValue.getValue());
     }
 
     @Override
     public String getStringProperty(String name) throws JMSException {
-        JMSMessagePropertyValue prop = propertyExists(name)
-                ? properties.get(name)
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
                 : PropertyType.STRING.createJMSMessagePropertyValue(null);
-        return prop.getPropertyType().toString(prop.getValue());
+        return propertyValue.getPropertyType().toString(propertyValue.getValue());
     }
 
     @Override
     public Object getObjectProperty(String name) throws JMSException {
-        JMSMessagePropertyValue propertyValue = getJMSMessagePropertyValue(name);
-        if (propertyValue != null) {
-            return propertyValue.getValue();
-        }
-        return null;
+        JMSMessagePropertyValue propertyValue = propertyExists(name)
+                ? getJMSMessagePropertyValue(name)
+                : PropertyType.STRING.createJMSMessagePropertyValue(null);
+        return propertyValue.getValue();
     }
     //endregion
 
@@ -450,7 +450,7 @@ abstract class SQSMessage implements Message {
     }
 
     private void setObjectPropertyInternal(String name, Object value, PropertyType propertyType) throws JMSException {
-        handleNullPropertyName(name);
+        checkValidityOfPropertyName(name);
         checkPropertyWritePermissions();
         properties.put(name, propertyType.createJMSMessagePropertyValue(value));
     }
@@ -465,17 +465,104 @@ abstract class SQSMessage implements Message {
 
     @Override
     public boolean propertyExists(String name) throws JMSException {
-        handleNullPropertyName(name);
+        checkValidityOfPropertyName(name);
         return properties.containsKey(name);
     }
 
     @Override
     public Enumeration<String> getPropertyNames() throws JMSException {
-        return new PropertyEnum(properties.keySet().iterator());
+        return new PropertyNameEnumeration(properties.keySet().iterator());
+    }
+
+    /**
+     * This method sets the JMS_SQS_SEQUENCE_NUMBER property on the message. It is exposed explicitly here, so that
+     * it can be invoked even on read-only message object obtained through receing a message.
+     * This support the use case of send a received message by using the same JMSMessage object.
+     *
+     * @param sequenceNumber Sequence number to set. If null or empty, the stored sequence number will be removed.
+     * @throws JMSException exception
+     */
+    void setSequenceNumber(String sequenceNumber) throws JMSException {
+        if (StringUtils.isNullOrEmpty(sequenceNumber)) {
+            properties.remove(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
+        } else {
+            setStringProperty(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER, sequenceNumber);
+        }
+    }
+
+    void checkPropertyWritePermissions() throws JMSException {
+        if (!isWritePermissionsForProperties()) {
+            throw new MessageNotWriteableException("Message properties are not writable");
+        }
+    }
+
+    /**
+     * Get SQS Message Group Id (applicable for FIFO queues, available also as JMS property 'JMSXGroupId')
+     *
+     * @throws JMSException exception
+     */
+    String getSQSMessageGroupId() throws JMSException {
+        return getStringProperty(SQSMessagingClientConstants.JMSX_GROUP_ID);
+    }
+
+    /**
+     * Get SQS Message Deduplication Id (applicable for FIFO queues, available also as JMS property 'JMS_SQS_DeduplicationId')
+     *
+     * @throws JMSException exception
+     */
+    String getSQSMessageDeduplicationId() throws JMSException {
+        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID);
+    }
+
+    /**
+     * Get SQS Message Sequence Number (applicable for FIFO queues, available also as JMS property 'JMS_SQS_SequenceNumber')
+     *
+     * @throws JMSException exception
+     */
+    String getSQSMessageSequenceNumber() throws JMSException {
+        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
+    }
+
+    /**
+     * Returns the property value with message attribute to object property
+     * conversions took place.
+     * <p>
+     *
+     * @param name The name of the property to get.
+     * @return <code>JMSMessagePropertyValue</code> with object value and
+     * corresponding SQS message attribute type and message attribute
+     * string value.
+     */
+    JMSMessagePropertyValue getJMSMessagePropertyValue(String name) {
+        return properties.get(name);
+    }
+
+    private void addMessageAttributes(com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
+        for (Entry<String, MessageAttributeValue> entry : sqsMessage.getMessageAttributes().entrySet()) {
+            properties.put(entry.getKey(),
+                    new JMSMessagePropertyValue(entry.getValue().getStringValue(), entry.getValue().getDataType()));
+        }
+    }
+
+    private void mapSystemAttributeToJmsMessageProperty(Map<String, String> systemAttributes,
+                                                        String systemAttributeName,
+                                                        String jmsMessagePropertyName) throws JMSException {
+
+        String systemAttributeValue = systemAttributes.get(systemAttributeName);
+        setStringProperty(jmsMessagePropertyName, systemAttributeValue);
+    }
+
+    private void checkValidityOfPropertyName(String name) {
+        if (StringUtils.isNullOrEmpty(name))
+            throw new IllegalArgumentException("Property name can not be null or empty.");
     }
     //endregion
 
     //region JMS Other
+    @Override
+    public void clearBody() throws JMSException {
+        setWritePermissionsForBody(true);
+    }
 
     /**
      * <p>
@@ -515,23 +602,9 @@ abstract class SQSMessage implements Message {
     //endregion
 
     //region Internal SQS Methods
-    void mapSystemAttributeToJmsMessageProperty(Map<String, String> systemAttributes, String systemAttributeName, String jmsMessagePropertyName) throws JMSException {
-        String systemAttributeValue = systemAttributes.get(systemAttributeName);
-        if (systemAttributeValue != null) {
-            properties.put(jmsMessagePropertyName, PropertyType.STRING.createJMSMessagePropertyValue(systemAttributeValue));
-        }
-    }
-
-    void addMessageAttributes(com.amazonaws.services.sqs.model.Message sqsMessage) throws JMSException {
-        for (Entry<String, MessageAttributeValue> entry : sqsMessage.getMessageAttributes().entrySet()) {
-            properties.put(entry.getKey(), new JMSMessagePropertyValue(
-                    entry.getValue().getStringValue(), entry.getValue().getDataType()));
-        }
-    }
-
-    void checkPropertyWritePermissions() throws JMSException {
-        if (!isWritePermissionsForProperties()) {
-            throw new MessageNotWriteableException("Message properties are not writable");
+    void checkBodyReadPermissions() throws JMSException {
+        if (isWritePermissionsForBody()) {
+            throw new MessageNotReadableException("Message is not readable");
         }
     }
 
@@ -539,33 +612,6 @@ abstract class SQSMessage implements Message {
         if (!isWritePermissionsForBody()) {
             throw new MessageNotWriteableException("Message body is not writable");
         }
-    }
-
-    /**
-     * Get SQS Message Group Id (applicable for FIFO queues, available also as JMS property 'JMSXGroupId')
-     *
-     * @throws JMSException exception
-     */
-    String getSQSMessageGroupId() throws JMSException {
-        return getStringProperty(SQSMessagingClientConstants.JMSX_GROUP_ID);
-    }
-
-    /**
-     * Get SQS Message Deduplication Id (applicable for FIFO queues, available also as JMS property 'JMS_SQS_DeduplicationId')
-     *
-     * @throws JMSException exception
-     */
-    String getSQSMessageDeduplicationId() throws JMSException {
-        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_DEDUPLICATION_ID);
-    }
-
-    /**
-     * Get SQS Message Sequence Number (applicable for FIFO queues, available also as JMS property 'JMS_SQS_SequenceNumber')
-     *
-     * @throws JMSException exception
-     */
-    String getSQSMessageSequenceNumber() throws JMSException {
-        return getStringProperty(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
     }
 
     /**
@@ -578,45 +624,11 @@ abstract class SQSMessage implements Message {
         this.setJMSMessageID(String.format(SQSMessagingClientConstants.MESSAGE_ID_FORMAT, SQSMessageID));
     }
 
-    private void handleNullPropertyName(String name) {
-        if (StringUtils.isNullOrEmpty(name))
-            throw new IllegalArgumentException("Property name can not be null or empty.");
-    }
-
-    /**
-     * Returns the property value with message attribute to object property
-     * conversions took place.
-     * <p>
-     *
-     * @param name The name of the property to get.
-     * @return <code>JMSMessagePropertyValue</code> with object value and
-     * corresponding SQS message attribute type and message attribute
-     * string value.
-     * @throws JMSException On internal error.
-     */
-    JMSMessagePropertyValue getJMSMessagePropertyValue(String name) throws JMSException {
-        return properties.get(name);
-    }
-
-    /**
-     * This method sets the JMS_SQS_SEQUENCE_NUMBER property on the message. It is exposed explicitly here, so that
-     * it can be invoked even on read-only message object obtained through receing a message.
-     * This support the use case of send a received message by using the same JMSMessage object.
-     *
-     * @param sequenceNumber Sequence number to set. If null or empty, the stored sequence number will be removed.
-     * @throws JMSException exception
-     */
-    void setSequenceNumber(String sequenceNumber) throws JMSException {
-        if (sequenceNumber == null || sequenceNumber.isEmpty()) {
-            properties.remove(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER);
-        } else {
-            properties.put(SQSMessagingClientConstants.JMS_SQS_SEQUENCE_NUMBER, PropertyType.STRING.createJMSMessagePropertyValue(sequenceNumber));
-        }
-    }
-
     boolean isEmpty() {
-        return false;
+        return true;
+    }
+
+    public void reset() throws JMSException {
     }
     //endregion
-
 }

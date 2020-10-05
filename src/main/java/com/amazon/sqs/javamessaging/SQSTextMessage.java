@@ -62,40 +62,21 @@ class SQSTextMessage extends SQSMessage implements TextMessage {
         this.text = payload;
     }
 
-    /**
-     * Sets the text containing this message's body.
-     *
-     * @param string The <code>String</code> containing the message's body
-     * @throws javax.jms.MessageNotWriteableException If the message is in read-only mode.
-     */
     @Override
     public void setText(String string) throws JMSException {
         checkBodyWritePermissions();
         this.text = string;
     }
 
-    /**
-     * Gets the text containing this message's body.
-     *
-     * @return The <code>String</code> containing the message's body
-     */
     @Override
     public String getText() throws JMSException {
         return text;
     }
 
-    /**
-     * Sets the message body to write mode, and sets the text to null
-     */
     @Override
     public void clearBody() throws JMSException {
+        super.clearBody();
         text = null;
-        setBodyWritePermissions(true);
-    }
-
-    @Override
-    protected boolean isEmpty() {
-        return StringUtils.isNullOrEmpty(text);
     }
 
     @Override
@@ -111,4 +92,10 @@ class SQSTextMessage extends SQSMessage implements TextMessage {
     public boolean isBodyAssignableTo(Class c) throws JMSException {
         return isEmpty() || c.isAssignableFrom(String.class);
     }
+
+    @Override
+    boolean isEmpty() {
+        return StringUtils.isNullOrEmpty(text);
+    }
+
 }

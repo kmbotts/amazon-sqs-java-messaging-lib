@@ -6,6 +6,7 @@ import com.amazonaws.services.sqs.model.SendMessageResult;
 
 import javax.jms.CompletionListener;
 import javax.jms.JMSException;
+import javax.jms.JMSRuntimeException;
 import javax.jms.Message;
 
 import java.util.Optional;
@@ -25,14 +26,19 @@ class SendMessageAsyncHandler implements AsyncHandler<SendMessageRequest, SendMe
     private final SQSMessage message;
     private final CompletionListener completionListener;
 
-    SendMessageAsyncHandler(Message message, CompletionListener completionListener) {
-        this.message = (SQSMessage) message;
+    SendMessageAsyncHandler(SQSMessage message, CompletionListener completionListener) {
+        this.message = message;
         this.completionListener = Optional.ofNullable(completionListener).orElse(NO_OP);
     }
 
     @Override
     public void onError(Exception exception) {
-        completionListener.onException(message, exception);
+        try {
+            message.reset();
+            completionListener.onException(message, exception);
+        } catch (JMSException e) {
+            throw new JMSRuntimeException("Unexpected Error occurred", e.getErrorCode(), e);
+        }
     }
 
     @Override
@@ -44,6 +50,7 @@ class SendMessageAsyncHandler implements AsyncHandler<SendMessageRequest, SendMe
             if (sendMessageResult.getSequenceNumber() != null) {
                 message.setSequenceNumber(sendMessageResult.getSequenceNumber());
             }
+            message.reset();
             completionListener.onCompletion(message);
         } catch (JMSException e) {
             onError(e);

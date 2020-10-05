@@ -14,10 +14,10 @@
  */
 package com.amazon.sqs.javamessaging;
 
-import com.amazon.sqs.javamessaging.SQSMessage.JMSMessagePropertyValue;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.util.Base64;
+import com.amazonaws.util.StringUtils;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.logging.Log;
@@ -436,14 +436,15 @@ abstract class AbstractMessageProducer implements QueueSender {
             // properties, so they are not lost between send and receive
             // even though SQS Classic does not respect those values when returning messages
             // and SQS FIFO has a different understanding of message groups
-
             JMSMessagePropertyValue propertyObject = message.getJMSMessagePropertyValue(propertyName);
             MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
 
-            messageAttributeValue.setDataType(propertyObject.getType());
-            messageAttributeValue.setStringValue(propertyObject.getStringMessageAttributeValue());
-
-            messageAttributes.put(propertyName, messageAttributeValue);
+            // Only non-null and empty strings are allowed in sqs message attributes
+            if (!StringUtils.isNullOrEmpty(propertyObject.getStringMessageAttributeValue())) {
+                messageAttributeValue.setDataType(propertyObject.getPropertyType().getType());
+                messageAttributeValue.setStringValue(propertyObject.getStringMessageAttributeValue());
+                messageAttributes.put(propertyName, messageAttributeValue);
+            }
         }
         return messageAttributes;
     }
@@ -499,7 +500,7 @@ abstract class AbstractMessageProducer implements QueueSender {
     private void addStringAttribute(Map<String, MessageAttributeValue> messageAttributes,
                                     String key, String value) {
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         messageAttributeValue.setStringValue(value);
         messageAttributes.put(key, messageAttributeValue);
     }
@@ -540,7 +541,9 @@ abstract class AbstractMessageProducer implements QueueSender {
 
         message.setJMSDestination(queue);
         if (message instanceof SQSBytesMessage) {
-            sqsMessageBody = Base64.encodeAsString(((SQSBytesMessage) message).getBodyAsBytes());
+            SQSBytesMessage bytesMessage = (SQSBytesMessage) message;
+            byte[] bytes = bytesMessage.readBytesInternal();
+            sqsMessageBody = Base64.encodeAsString(bytes);
             messageType = SQSMessage.BYTE_MESSAGE_TYPE;
 
         } else if (message instanceof SQSObjectMessage) {
@@ -552,10 +555,10 @@ abstract class AbstractMessageProducer implements QueueSender {
             messageType = SQSMessage.TEXT_MESSAGE_TYPE;
         }
 
-        if (sqsMessageBody == null || sqsMessageBody.isEmpty()) {
+        if (StringUtils.isNullOrEmpty(sqsMessageBody)) {
             throw new JMSException("Message body cannot be null or empty");
         }
-        Map<String, MessageAttributeValue> messageAttributes = propertyToMessageAttribute((SQSMessage) message);
+        Map<String, MessageAttributeValue> messageAttributes = propertyToMessageAttribute(message);
 
         /*
           These will override existing attributes if they exist. Everything that

@@ -33,25 +33,7 @@ class SQSMessagingClientConstants {
      * JMSMessage available user property types, which are mapped to message
      * attribute data types
      */
-    public static final String STRING = "String";
 
-    public static final String NUMBER = "Number";
-
-    public static final String INT = "Number.int";
-
-    public static final String BOOLEAN = "Number.Boolean";
-
-    public static final String BYTE = "Number.byte";
-
-    public static final String DOUBLE = "Number.double";
-
-    public static final String FLOAT = "Number.float";
-
-    public static final String LONG = "Number.long";
-
-    public static final String SHORT = "Number.short";
-
-    public static final String INT_FALSE = "0";
 
     public static final String INT_TRUE = "1";
 

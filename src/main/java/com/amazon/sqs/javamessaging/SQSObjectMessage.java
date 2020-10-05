@@ -15,7 +15,6 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.util.Base64;
 import com.amazonaws.util.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,11 +23,6 @@ import javax.jms.JMSException;
 import javax.jms.MessageFormatException;
 import javax.jms.ObjectMessage;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 /**
@@ -71,7 +65,7 @@ class SQSObjectMessage extends SQSMessage implements ObjectMessage {
      */
     public SQSObjectMessage(Serializable payload) throws JMSException {
         super();
-        body = serialize(payload);
+        body = SQSMessageUtil.serialize(payload);
     }
 
     /**
@@ -84,7 +78,7 @@ class SQSObjectMessage extends SQSMessage implements ObjectMessage {
     @Override
     public void setObject(Serializable payload) throws JMSException {
         checkBodyWritePermissions();
-        body = serialize(payload);
+        body = SQSMessageUtil.serialize(payload);
     }
 
     /**
@@ -94,7 +88,7 @@ class SQSObjectMessage extends SQSMessage implements ObjectMessage {
      */
     @Override
     public Serializable getObject() throws JMSException {
-        return deserialize(body);
+        return SQSMessageUtil.deserialize(body);
     }
 
     /**
@@ -102,70 +96,8 @@ class SQSObjectMessage extends SQSMessage implements ObjectMessage {
      */
     @Override
     public void clearBody() throws JMSException {
+        super.clearBody();
         body = null;
-        setBodyWritePermissions(true);
-    }
-
-    /**
-     * Deserialize the <code>String</code> into <code>Serializable</code>
-     * object.
-     */
-    protected static Serializable deserialize(String serialized) throws JMSException {
-        if (serialized == null) {
-            return null;
-        }
-        Serializable deserializedObject;
-        ObjectInputStream objectInputStream = null;
-        try {
-            byte[] bytes = Base64.decode(serialized);
-            objectInputStream = new ObjectInputStream(new ByteArrayInputStream(bytes));
-            deserializedObject = (Serializable) objectInputStream.readObject();
-        } catch (IOException e) {
-            LOG.error("IOException: Message cannot be written", e);
-            throw convertExceptionToMessageFormatException(e);
-        } catch (Exception e) {
-            LOG.error("Unexpected exception: ", e);
-            throw convertExceptionToMessageFormatException(e);
-        } finally {
-            if (objectInputStream != null) {
-                try {
-                    objectInputStream.close();
-                } catch (IOException e) {
-                    LOG.warn(e.getMessage());
-                }
-            }
-        }
-        return deserializedObject;
-    }
-
-    /**
-     * Serialize the <code>Serializable</code> object to <code>String</code>.
-     */
-    protected static String serialize(Serializable serializable) throws JMSException {
-        if (serializable == null) {
-            return null;
-        }
-        String serializedString;
-        ObjectOutputStream objectOutputStream = null;
-        try {
-            ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-            objectOutputStream = new ObjectOutputStream(bytesOut);
-            objectOutputStream.writeObject(serializable);
-            objectOutputStream.flush();
-            serializedString = Base64.encodeAsString(bytesOut.toByteArray());
-        } catch (IOException e) {
-            LOG.error("IOException: cannot serialize objectMessage", e);
-            throw convertExceptionToMessageFormatException(e);
-        } finally {
-            if (objectOutputStream != null) {
-                try {
-                    objectOutputStream.close();
-                } catch (IOException e) {
-                    LOG.warn(e.getMessage());
-                }
-            }
-        }
-        return serializedString;
     }
 
     public String getMessageBody() {

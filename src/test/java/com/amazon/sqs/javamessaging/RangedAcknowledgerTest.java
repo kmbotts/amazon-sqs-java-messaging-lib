@@ -15,10 +15,11 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import javax.jms.JMSException;
 
@@ -27,14 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-
 /**
  * Test the RangedAcknowledger class
  */
@@ -42,8 +35,8 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
 
     @Before
     public void setupRanded() throws JMSException {
-        amazonSQSClient = mock(AmazonSQSMessagingClientWrapper.class);
-        acknowledger = AcknowledgeMode.ACK_RANGE.createAcknowledger(amazonSQSClient, mock(SQSSession.class));
+        amazonSQSClient = Mockito.mock(AmazonSQSMessagingClientWrapper.class);
+        acknowledger = AcknowledgeMode.ACK_RANGE.createAcknowledger(amazonSQSClient, Mockito.mock(SQSSession.class));
     }
 
     /**
@@ -84,7 +77,7 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
         testAcknowledge(populateMessageSize, ackMessage);
 
         ArgumentCaptor<DeleteMessageBatchRequest> argumentCaptor = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
-        verify(amazonSQSClient, times(5)).deleteMessageBatch(argumentCaptor.capture());
+        Mockito.verify(amazonSQSClient, Mockito.times(5)).deleteMessageBatch(argumentCaptor.capture());
 
         //key is the queue url
         //value is the sequence of sizes of expected batches
@@ -104,16 +97,16 @@ public class RangedAcknowledgerTest extends AcknowledgerCommon {
         for (DeleteMessageBatchRequest request : argumentCaptor.getAllValues()) {
             String queueUrl = request.getQueueUrl();
             List<Integer> expectedSequence = expectedCalls.get(queueUrl);
-            assertNotNull(expectedSequence);
-            assertTrue(expectedSequence.size() > 0);
-            assertEquals(expectedSequence.get(0).intValue(), request.getEntries().size());
+            Assert.assertNotNull(expectedSequence);
+            Assert.assertTrue(expectedSequence.size() > 0);
+            Assert.assertEquals(expectedSequence.get(0).intValue(), request.getEntries().size());
             expectedSequence.remove(0);
             if (expectedSequence.isEmpty()) {
                 expectedCalls.remove(queueUrl);
             }
         }
 
-        assertTrue(expectedCalls.isEmpty());
+        Assert.assertTrue(expectedCalls.isEmpty());
     }
 
     /**

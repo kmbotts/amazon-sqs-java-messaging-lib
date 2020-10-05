@@ -57,7 +57,7 @@ public class SQSAsyncMessageProducer extends AbstractMessageProducer {
         SQSQueueDestination sqsQueueDestination = (SQSQueueDestination) queue;
         SQSMessage sqsMessage = checkMessageFormat(message);
 
-        SendMessageRequest sendMessageRequest = getSendMessageRequest(sqsQueueDestination, message);
+        SendMessageRequest sendMessageRequest = getSendMessageRequest(sqsQueueDestination, sqsMessage);
 
         getSqsClientWrapper().sendMessageAsync(sendMessageRequest, new SendMessageAsyncHandler(sqsMessage, listener));
     }

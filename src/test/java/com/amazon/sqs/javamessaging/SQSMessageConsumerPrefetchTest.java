@@ -884,7 +884,7 @@ public class SQSMessageConsumerPrefetchTest {
         Map<String, MessageAttributeValue> mapMessageAttributes = new HashMap<String, MessageAttributeValue>();
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.BYTE_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();
@@ -927,7 +927,7 @@ public class SQSMessageConsumerPrefetchTest {
 
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.BYTE_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();
@@ -966,7 +966,7 @@ public class SQSMessageConsumerPrefetchTest {
 
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.OBJECT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();
@@ -1011,7 +1011,7 @@ public class SQSMessageConsumerPrefetchTest {
 
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.OBJECT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();
@@ -1052,7 +1052,7 @@ public class SQSMessageConsumerPrefetchTest {
         Map<String, MessageAttributeValue> mapMessageAttributes = new HashMap<String, MessageAttributeValue>();
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.TEXT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();

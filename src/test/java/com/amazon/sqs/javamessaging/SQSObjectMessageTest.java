@@ -24,11 +24,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
 /**
  * Test the SQSObjectMessageTest class
  */
@@ -44,9 +39,9 @@ public class SQSObjectMessageTest {
 
         ObjectMessage objectMessage = new SQSObjectMessage();
         objectMessage.setObject((Serializable) expectedPayload);
-        
+
         Map<String, String> actualPayload = (HashMap<String, String>) objectMessage.getObject();
-        assertEquals(expectedPayload, actualPayload);
+        Assert.assertEquals(expectedPayload, actualPayload);
     }
 
     /**
@@ -58,9 +53,9 @@ public class SQSObjectMessageTest {
         expectedPayload.put("testKey", "testValue");
 
         ObjectMessage objectMessage = new SQSObjectMessage((Serializable) expectedPayload);
-        
+
         Map<String, String> actualPayload = (HashMap<String, String>) objectMessage.getObject();
-        assertEquals(expectedPayload, actualPayload);
+        Assert.assertEquals(expectedPayload, actualPayload);
     }
 
     /**
@@ -73,22 +68,22 @@ public class SQSObjectMessageTest {
 
         SQSObjectMessage sqsObjectMessage = new SQSObjectMessage();
 
-        String serialized = sqsObjectMessage.serialize((Serializable) expectedPayload);
+        String serialized = SQSMessageUtil.serialize((Serializable) expectedPayload);
 
-        assertNotNull("Serialized object should not be null.", serialized);
-        Assert.assertFalse("Serialized object should not be empty.", "".equals(serialized));
+        Assert.assertNotNull("Serialized object should not be null.", serialized);
+        Assert.assertNotEquals("Serialized object should not be empty.", "", serialized);
 
-        Map<String, String> deserialized = (Map<String, String>) sqsObjectMessage.deserialize(serialized);
+        Map<String, String> deserialized = (Map<String, String>) SQSMessageUtil.deserialize(serialized);
 
-        assertNotNull("Deserialized object should not be null.", deserialized);
-        assertEquals("Serialized object should be equal to original object.", expectedPayload, deserialized);
+        Assert.assertNotNull("Deserialized object should not be null.", deserialized);
+        Assert.assertEquals("Serialized object should be equal to original object.", expectedPayload, deserialized);
 
         sqsObjectMessage.clearBody();
 
-        assertNull(sqsObjectMessage.getMessageBody());
+        Assert.assertNull(sqsObjectMessage.getMessageBody());
 
     }
-    
+
     /**
      * Test serialization and deserialization with illegal input
      */
@@ -98,13 +93,13 @@ public class SQSObjectMessageTest {
         SQSObjectMessage sqsObjectMessage = new SQSObjectMessage();
 
         try {
-            sqsObjectMessage.deserialize(wrongString);
-            fail();
-        } catch (JMSException exception) {
+            SQSMessageUtil.deserialize(wrongString);
+            Assert.fail();
+        } catch (JMSException ignore) {
         }
 
-        assertNull(sqsObjectMessage.deserialize(null));
+        Assert.assertNull(SQSMessageUtil.deserialize(null));
 
-        assertNull(sqsObjectMessage.serialize(null));
+        Assert.assertNull(SQSMessageUtil.serialize(null));
     }
 }

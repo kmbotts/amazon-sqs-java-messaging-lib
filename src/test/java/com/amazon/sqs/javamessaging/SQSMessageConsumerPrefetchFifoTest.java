@@ -229,7 +229,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
         // Return message attributes with message type 'BYTE'
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.BYTE_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         message.getMessageAttributes().put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         byte[] byteArray = new byte[] { 1, 0, 'a', 65 };
@@ -266,7 +266,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
         // Return message attributes with message type 'BYTE'
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.BYTE_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         message.getMessageAttributes().put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
         // Return illegal message body for byte message type
         message.setBody("Text Message");
@@ -296,7 +296,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
         // Return message attributes with message type 'OBJECT'
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.OBJECT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         message.getMessageAttributes().put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         // Encode an object to byte array
@@ -337,7 +337,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
         // Return message attributes with message type 'OBJECT'
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.OBJECT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         message.getMessageAttributes().put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
         message.setBody("Some text that does not represent an object");
 
@@ -371,7 +371,7 @@ public class SQSMessageConsumerPrefetchFifoTest {
         // Return message attributes with message type 'TEXT'
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.TEXT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         message.getMessageAttributes().put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
         message.setBody("MessageBody");
         

@@ -2,28 +2,45 @@ package com.amazon.sqs.javamessaging;
 
 import javax.jms.IllegalStateException;
 import javax.jms.JMSException;
+import javax.jms.MessageFormatException;
 
 import java.util.function.Supplier;
 
 class JMSExceptionUtil {
 
-    public static Supplier<JMSException> UnsupportedMethod() {
+    static Supplier<JMSException> UnsupportedMethod() {
         return () -> new JMSException(SQSMessagingClientConstants.UNSUPPORTED_METHOD);
     }
 
-    public static Supplier<JMSException> NullAmazonSqsClient() {
+    static Supplier<JMSException> NullAmazonSqsClient() {
         return () -> new JMSException("Amazon SQS Client is null!");
     }
 
-    public static Supplier<JMSException> DestinationTypeMismatch() {
+    static Supplier<JMSException> DestinationTypeMismatch() {
         return () -> new JMSException("Actual type of Destination/Queue has to be SQSQueueDestination");
     }
 
-    public static Supplier<JMSException> MessageSelectorUnsupported() {
+    static Supplier<JMSException> MessageSelectorUnsupported() {
         return () -> new JMSException("SQSSession does not support MessageSelector. This should be null.");
     }
 
-    public static Supplier<IllegalStateException> DestinationAlreadySet() {
+    static Supplier<IllegalStateException> DestinationAlreadySet() {
         return () -> new IllegalStateException("MessageProducer already specified a destination at creation time.");
+    }
+
+    static JMSException convertExceptionToJMSException(Exception e) {
+        JMSException ex = new JMSException(e.getMessage());
+        ex.initCause(e);
+        return ex;
+    }
+
+    static MessageFormatException convertExceptionToMessageFormatException(Exception e) {
+        MessageFormatException ex = new MessageFormatException(e.getMessage());
+        ex.initCause(e);
+        return ex;
+    }
+
+    static JMSException conversionUnsupportedException(Class<?> toClass, Object value) {
+        return new JMSException(toClass.getName() + " conversion not supported for " + value.getClass().getName());
     }
 }

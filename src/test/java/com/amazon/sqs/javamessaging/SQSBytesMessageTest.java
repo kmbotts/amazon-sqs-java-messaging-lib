@@ -216,7 +216,7 @@ public class SQSBytesMessageTest {
 
         SQSBytesMessage msg = spy(new SQSBytesMessage());
         doNothing()
-                .when(msg).checkCanRead();
+                .when(msg).checkBodyReadPermissions();
 
         msg.setDataIn(dis);
 
@@ -315,7 +315,7 @@ public class SQSBytesMessageTest {
 
         SQSBytesMessage msg = spy(new SQSBytesMessage());
         doNothing()
-                .when(msg).checkCanRead();
+                .when(msg).checkBodyReadPermissions();
 
         msg.setDataOut(dos);
 

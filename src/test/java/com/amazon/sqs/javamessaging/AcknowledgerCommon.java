@@ -15,7 +15,8 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazonaws.services.sqs.model.Message;
-import junit.framework.Assert;
+import org.junit.Assert;
+import org.mockito.Mockito;
 
 import javax.jms.JMSException;
 
@@ -23,9 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Parent class for the Acknowledger tests
@@ -35,7 +33,7 @@ public class AcknowledgerCommon {
     protected String baseQueueUrl = "queueUrl";
     protected Acknowledger acknowledger;
     protected AmazonSQSMessagingClientWrapper amazonSQSClient;
-    protected List<SQSMessage> populatedMessages = new ArrayList<SQSMessage>();
+    protected List<SQSMessage> populatedMessages = new ArrayList<>();
 
     /*
      * Generate and populate the list with sqs message from different queues
@@ -53,17 +51,17 @@ public class AcknowledgerCommon {
             } else if (i == 44) {
                 queueUrl = baseQueueUrl + 4;
             }
-            
-            Message sqsMessage = mock(Message.class);
-            when(sqsMessage.getReceiptHandle()).thenReturn("ReceiptHandle" + i);
-            when(sqsMessage.getMessageId()).thenReturn("MessageId" + i);
+
+            Message sqsMessage = Mockito.mock(Message.class);
+            Mockito.when(sqsMessage.getReceiptHandle()).thenReturn("ReceiptHandle" + i);
+            Mockito.when(sqsMessage.getMessageId()).thenReturn("MessageId" + i);
             // Add mock Attributes
-            Map<String, String> mockAttributes = new HashMap<String, String>();
+            Map<String, String> mockAttributes = new HashMap<>();
             mockAttributes.put(SQSMessagingClientConstants.APPROXIMATE_RECEIVE_COUNT, "2");
-            when(sqsMessage.getAttributes()).thenReturn(mockAttributes);
-            
-            SQSMessage message = (SQSMessage) new SQSTextMessage(acknowledger, queueUrl, sqsMessage);
-            
+            Mockito.when(sqsMessage.getAttributes()).thenReturn(mockAttributes);
+
+            SQSMessage message = new SQSTextMessage(acknowledger, queueUrl, sqsMessage);
+
             populatedMessages.add(message);
             acknowledger.notifyMessageReceived(message);
         }

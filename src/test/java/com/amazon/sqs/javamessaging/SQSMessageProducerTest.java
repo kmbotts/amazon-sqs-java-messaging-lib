@@ -35,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -187,18 +188,18 @@ public class SQSMessageProducerTest {
         String objectProperty = "ObjectProperty";
 
         sqsText.setBooleanProperty(booleanProperty, true);
-        sqsText.setByteProperty(byteProperty, (byte)1);
+        sqsText.setByteProperty(byteProperty, (byte) 1);
         sqsText.setShortProperty(shortProperty, (short) 2);
         sqsText.setIntProperty(intProperty, 3);
         sqsText.setLongProperty(longProperty, 4L);
-        sqsText.setFloatProperty(floatProperty, (float)5.0);
+        sqsText.setFloatProperty(floatProperty, (float) 5.0);
         sqsText.setDoubleProperty(doubleProperty, 6.0);
         sqsText.setStringProperty(stringProperty, "seven");
         sqsText.setObjectProperty(objectProperty, new Integer(8));
 
         MessageAttributeValue messageAttributeValueBoolean = new MessageAttributeValue();
-        messageAttributeValueBoolean.setDataType("Number.Boolean");
-        messageAttributeValueBoolean.setStringValue("1");
+        messageAttributeValueBoolean.setDataType("String.Boolean");
+        messageAttributeValueBoolean.setStringValue("true");
 
         MessageAttributeValue messageAttributeValueByte = new MessageAttributeValue();
         messageAttributeValueByte.setDataType("Number.byte");
@@ -352,7 +353,7 @@ public class SQSMessageProducerTest {
         Map<String,MessageAttributeValue> mapMessageAttributes = new HashMap<String, MessageAttributeValue>();
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.TEXT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();
@@ -371,7 +372,7 @@ public class SQSMessageProducerTest {
 
         producer.sendMessageInternal(destination, msg, null);
 
-        List<String> messagesBody = Arrays.asList("MessageBody");
+        List<String> messagesBody = Collections.singletonList("MessageBody");
         verify(amazonSQSClient).sendMessage(argThat(new sendMessageRequestMatcher(QUEUE_URL, messagesBody, mapMessageAttributes)));
         verify(msg).setJMSDestination(destination);
         verify(msg).setJMSMessageID("ID:" + MESSAGE_ID_1);
@@ -433,7 +434,7 @@ public class SQSMessageProducerTest {
 
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.OBJECT_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();
@@ -519,7 +520,7 @@ public class SQSMessageProducerTest {
         Map<String,MessageAttributeValue> mapMessageAttributes = new HashMap<String, MessageAttributeValue>();
         MessageAttributeValue messageAttributeValue = new MessageAttributeValue();
         messageAttributeValue.setStringValue(SQSMessage.BYTE_MESSAGE_TYPE);
-        messageAttributeValue.setDataType(SQSMessagingClientConstants.STRING);
+        messageAttributeValue.setDataType(PropertyType.STRING.getType());
         mapMessageAttributes.put(SQSMessage.JMS_SQS_MESSAGE_TYPE, messageAttributeValue);
 
         Map<String, String> mapAttributes = new HashMap<String, String>();
