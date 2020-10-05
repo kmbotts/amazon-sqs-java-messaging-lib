@@ -15,30 +15,23 @@
 package com.amazon.sqs.javamessaging;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.util.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
-import javax.jms.MessageNotReadableException;
-import javax.jms.MessageNotWriteableException;
 
 import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 @SuppressWarnings("RedundantThrows")
 class SQSMapMessage extends SQSMessage implements MapMessage {
     private static final Log LOG = LogFactory.getLog(SQSMapMessage.class);
 
-    private static final Lock LOCK = new ReentrantLock();
-
     /**
      * Text of the message. Assume this is safe from SQS invalid characters.
      */
-    private ConcurrentHashMap<String, Object> map;
+    private final ConcurrentHashMap<String, Object> map;
 
     /**
      * Convert received SQSMessage into TextMessage.
@@ -48,47 +41,9 @@ class SQSMapMessage extends SQSMessage implements MapMessage {
         map = (ConcurrentHashMap<String, Object>) SQSMessageUtil.deserialize(sqsMessage.getBody());
     }
 
-    private void checkCanRead(String name) throws JMSException {
-        checkName(name);
-        if (map == null) {
-            throw new MessageNotReadableException("Message is not readable");
-        }
-    }
-
-    private void checkCanWrite(String name) throws JMSException {
-        checkName(name);
-        if (map != null) {
-            throw new MessageNotWriteableException("Message is not writeable");
-        }
-    }
-
-    private void checkName(String name) throws JMSException {
-        if (StringUtils.isNullOrEmpty(name))
-            throw new JMSException("Name cannot be null or empty!");
-    }
-
-    enum TypeCheck {
-        BOOLEAN {
-            @Override
-            public boolean toBoolean(Object object) throws JMSException {
-                return (boolean) object;
-            }
-        };
-
-        public boolean toBoolean(Object object) throws JMSException {
-            throw new JMSException("Cannot convert boolean!");
-        }
-
-        public byte toByte(Object object) throws JMSException {
-            throw new JMSException("Cannot convert byte!");
-        }
-
-    }
-
     @Override
     public boolean getBoolean(String name) throws JMSException {
-        checkCanRead(name);
-        return TypeCheck.BOOLEAN.toBoolean(map.get(name));
+        return false;
     }
 
     @Override
@@ -214,5 +169,6 @@ class SQSMapMessage extends SQSMessage implements MapMessage {
     @Override
     public void clearBody() throws JMSException {
         super.clearBody();
+        map.clear();
     }
 }
